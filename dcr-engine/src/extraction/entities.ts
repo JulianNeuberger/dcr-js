@@ -1,7 +1,7 @@
 import type { Entity, ProcessDescription } from "./models";
 import entitiesPrompt from "../prompts/entities";
-import { callAi, extractOutputText } from "./utils";
 import { tagMentions } from "./preprocessing";
+import { routePrompt } from "./router";
 
 export async function resolveEntities(model: string, doc: ProcessDescription, apiKey: string, entityDescription: string): Promise<Entity[]> {
     const taggedSentences = tagMentions(doc.sentences, doc.mentions);
@@ -9,15 +9,7 @@ export async function resolveEntities(model: string, doc: ProcessDescription, ap
     prompt = prompt.replaceAll("{{text}}", taggedSentences.join('\n'));
     prompt = prompt.replaceAll("{{description}}", entityDescription);
 
-    const response = await callAi(apiKey, model, prompt);
-
-    if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    const result = extractOutputText(data);
+    const result = await routePrompt(prompt, apiKey, model);
 
     const entities: Entity[] = [];
 

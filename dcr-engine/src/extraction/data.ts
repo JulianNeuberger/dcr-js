@@ -1,7 +1,7 @@
 import type { Expression, ProcessDescription, Variable } from "./models";
 import dataPrompt from "../prompts/guards";
-import { callAi, extractOutputText } from "./utils";
 import { tagMentions } from "./preprocessing";
+import { routePrompt } from "./router";
 
 interface DataExtractionResult {
     variables: Variable[];
@@ -17,14 +17,7 @@ export async function extractDataAndExpressions(model: string, doc: ProcessDescr
     prompt = prompt.replaceAll("{{relations}}", relations.join('\n'));
     prompt = prompt.replaceAll("{{description}}", description);
 
-    const response = await callAi(apiKey, model, prompt);
-
-    if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const result: string = extractOutputText(data);
+    const result: string = await routePrompt(prompt, apiKey, model);
 
     const split = result.trim().split("\n\n");
 

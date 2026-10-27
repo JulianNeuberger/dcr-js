@@ -1,6 +1,6 @@
 import type { Mention, ProcessDescription } from "./models";
 import mentionPrompt from "../prompts/mentions";
-import { callAi, extractOutputText } from "./utils";
+import { routePrompt } from "./router";
 
 export async function extractEntityMentions(model: string, doc: ProcessDescription, apiKey: string, mentionDescription: string): Promise<Mention[]> {
     let text = "";
@@ -15,15 +15,7 @@ export async function extractEntityMentions(model: string, doc: ProcessDescripti
     let prompt = mentionPrompt;
     prompt = prompt.replaceAll("{{text}}", text);
     prompt = prompt.replaceAll("{{description}}", mentionDescription);
-    const response = await callAi(apiKey, model, prompt);
-
-    if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    const result = extractOutputText(data);
+    const result = await routePrompt(prompt, apiKey, model);
 
     for (const rawMention of result.trim().split("\n")) {
         const [mentionText, mentionType, mentionSentenceStr] = rawMention.trim().split("\t");

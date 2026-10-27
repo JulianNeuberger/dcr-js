@@ -1,7 +1,7 @@
 import type { ProcessDescription, Relation } from "./models";
 import relationsPrompt from "../prompts/relations";
-import { callAi, extractOutputText } from "./utils";
 import { tagMentions } from "./preprocessing";
+import { routePrompt } from "./router";
 
 export async function extractRelations(model: string, doc: ProcessDescription, apiKey: string, relationDescription: string): Promise<Relation[]> {
     const taggedSentences = tagMentions(doc.sentences, doc.mentions);
@@ -9,15 +9,7 @@ export async function extractRelations(model: string, doc: ProcessDescription, a
     prompt = prompt.replaceAll("{{text}}", taggedSentences.join('\n'));
     prompt = prompt.replaceAll("{{description}}", relationDescription);
 
-    const response = await callAi(apiKey, model, prompt);
-
-    if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    const result = extractOutputText(data);
+    const result = await routePrompt(prompt, apiKey, model);
 
     const relations: Relation[] = [];
     for (const rawRelation of result.trim().split("\n")) {

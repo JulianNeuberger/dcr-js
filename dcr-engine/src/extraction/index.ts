@@ -14,7 +14,10 @@ export { extractEntityMentions } from "./mentions";
 export { resolveEntities } from "./entities";
 export { extractRelations } from "./relations";
 export { extractDataAndExpressions } from "./data";
-export { extractOutputText, callAi } from "./utils";
+export { routePrompt, getProvider } from "./router";
+export { OpenAIProvider } from "./openaiProvider";
+export { AnthropicProvider } from "./anthropicProvider";
+export { LLMProvider } from "./llmProvider";
 
 export default async function extractGraph(
     config: ExtractionConfig,

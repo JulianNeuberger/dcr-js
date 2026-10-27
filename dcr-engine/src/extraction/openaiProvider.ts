@@ -1,5 +1,12 @@
 import { LLMProvider, type LLMProviderConfig, type LLMResponse } from "./llmProvider";
-import { extractOutputText } from "./utils";
+
+function extractOutputText(data: any): string {
+    const messageItem = data.output?.find((item: any) => item.type === "message");
+    if (!messageItem) {
+        throw new Error("No message item found in OpenAI response output");
+    }
+    return messageItem.content[0].text;
+}
 
 export class OpenAIProvider extends LLMProvider {
     constructor(config: LLMProviderConfig) {
