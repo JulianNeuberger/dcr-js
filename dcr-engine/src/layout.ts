@@ -6,6 +6,8 @@ import type {
   Expression,
   Nestings,
   RelationType,
+  RoleDataDCR,
+  RoleMap,
   Variable,
   VariableType,
 } from "./types";
@@ -43,7 +45,8 @@ type LayoutType = Omit<ElkNode, "children"> & {
 function createXML(
   laidOutGraph: LayoutType,
   nodesAndEdges: AbstractGraph,
-  nestings?: Nestings
+  nestings?: Nestings,
+  roleMap?: RoleMap
 ) {
   var xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xmlContent +=
@@ -70,12 +73,13 @@ function createXML(
           retval += createNodeArrayXML(node.children, nestings);
         retval += "</dcr:nesting>\n";
       } else {
+        const roleAttr = roleMap?.[node.id] ? ` role="${roleMap[node.id]}"` : "";
         if(node.variable) {
-          retval += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false">\n`;
+          retval += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false"${roleAttr}>\n`;
           retval += `  <dcr:eventData name="${node.variable.name}" type="${node.variable.type}" />\n`
           retval += ` </dcr:event>\n`
         } else {
-          retval += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false" />\n`;
+          retval += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false"${roleAttr} />\n`;
         }
       }
     });
@@ -86,12 +90,13 @@ function createXML(
     xmlContent += createNodeArrayXML(nodesAndEdges.nodes, nestings);
   } else {
     nodesAndEdges.nodes.forEach((node) => {
+      const roleAttr = roleMap?.[node.id] ? ` role="${roleMap[node.id]}"` : "";
       if(node.variable) {
-        xmlContent += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false">\n`;
+        xmlContent += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false"${roleAttr}>\n`;
         xmlContent += `  <dcr:eventData name="${node.variable.name}" type="${node.variable.type}" />\n`
         xmlContent += ` </dcr:event>\n`
       } else {
-        xmlContent += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false" />\n`;
+        xmlContent += ` <dcr:event id="${descToId(node.id)}" description="${node.id}" included="${node.included}" executed="${node.executed}" pending="${node.pending}" enabled="false"${roleAttr} />\n`;
       }
     });
   }
@@ -297,8 +302,9 @@ function getAbstractGraph(graph: DCRGraph | DataDCR, nestings?: Nestings): Abstr
 }
 
 export default async function layoutGraph(
-  graph: DCRGraph | DataDCR,
-  nestings?: Nestings
+  graph: DCRGraph | DataDCR | RoleDataDCR,
+  nestings?: Nestings,
+  roleMap?: RoleMap
 ) {
   const abstractGraph = getAbstractGraph(graph, nestings);
 
@@ -316,7 +322,13 @@ export default async function layoutGraph(
   const elk = new ELK();
   const result = await elk.layout(layout);
 
-  const xmlContent = createXML(result, abstractGraph, nestings);
+  // Prefer an explicitly provided roleMap, but fall back to the one embedded
+  // in the graph (RoleDataDCR) so callers that rebuild from buildGraph keep
+  // emitting role attributes.
+  const resolvedRoleMap: RoleMap | undefined =
+    roleMap ?? ("roleMap" in graph ? graph.roleMap : undefined);
+
+  const xmlContent = createXML(result, abstractGraph, nestings, resolvedRoleMap);
 
   return xmlContent;
 }

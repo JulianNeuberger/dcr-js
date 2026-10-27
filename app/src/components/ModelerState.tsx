@@ -16,6 +16,7 @@ import {
     BiSave,
     BiSolidDashboard,
     BiTestTube,
+    BiInfoCircle,
 } from "react-icons/bi";
 
 import Examples from "./Examples";
@@ -25,7 +26,7 @@ import {useHotkeys} from "react-hotkeys-hook";
 import FullScreenIcon from "../utilComponents/FullScreenIcon";
 import StyledFileUpload from "../utilComponents/StyledFileUpload";
 import Loading from "../utilComponents/Loading";
-import {type DCRGraph, extractGraph, layoutGraph, moddleToDCR, nestDCR, type Nestings,} from "dcr-engine";
+import {type DCRGraph, extractGraph, layoutGraph, moddleToDCR, nestDCR, buildGraph, filterProcessDescription, type Nestings, type RoleMap, type ProcessDescription,} from "dcr-engine";
 import GraphNameInput from "../utilComponents/GraphNameInput";
 import styled from "styled-components";
 import {ColoredRelationsSetting, MarkerNotationSetting,} from "./GlobalModalMenuElements";
@@ -36,6 +37,7 @@ import {BsFiletypeDoc, BsStars} from "react-icons/bs";
 import ModelExtractionDialogue from "./ModelExtractionDialogue.tsx";
 import type {ExtractionConfig, ExtractionResult} from "dcr-engine/src/extraction.ts";
 import ExtractionResultView from "./ExtractionResultView.tsx";
+import Popup from "../utilComponents/Popup";
 
 
 const TextButton = styled(BsFiletypeDoc)<{ open: boolean }>`
@@ -68,9 +70,24 @@ const HeatmapButton = styled(BiTestTube)<{
         cursor: default !important;
         &:hover {
             box-shadow: none !important;
-        }    
+        }
     `
                     : ""}
+`;
+
+const BpmnInfoIcon = styled(BiInfoCircle)`
+  font-size: 18px;
+  color: grey;
+  cursor: pointer;
+
+  &:hover {
+    color: black;
+  }
+`;
+
+const BpmnSupportList = styled.ul`
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
 `;
 
 const defaultRelationsDescription = `**executes**: Focus on actors. Extract a relation of type "executes", if the text describes that this actor (head) is responsible for the event (tail).
@@ -81,6 +98,8 @@ const defaultRelationsDescription = `**executes**: Focus on actors. Extract a re
 
 const defaultMentionsDescription = `**Event**: These are events, preconditions or outcomes relevant to law and regulation. Events can be immaterial, e.g., providing support, help or compensation. Beyond that events can also be inputs, that is data that is relevant to the law (e.g. numbers, strings).
 **Actor**: Nouns and pronouns, that describe a person, system, or company that is responsible for executing an event in the process.`;
+
+const defaultEntitiesDescription = `**Entity**: A real-world object that can be referred to by multiple mentions, e.g., a person, company, or event. Mentions contained in the same entity must refer to the same real-world object.`;
 
 const defaultDataDescription = `**Variable**: Data that is relevant to the process, e.g., by changing rules or outcomes. Examples are the age of process participants, distances, weights, number of units, etc. Time does not need to be extracted separately and will always be a variable available by default.
 **Expression**: Rules that change behaviour and constraints, e.g., if a response is only valid if some variable is below a certain threshold. Such expressions are called Guards. If the expression uses the time variable, they are called Deadlines (for responses) and Timeouts (for conditions). Expressions always shall be extracted in the FEEL notation, deadlines and timeouts use the time period format, e.g., PT2h for a period of 2 hours.`;
@@ -102,16 +121,19 @@ const ModelerState = ({
     const [tdmOpen, setTdmOpen] = useState(false);
     const [modelExtractionOpen, setModelExtractionOpen] = useState(false);
     const [isExtractingModel, setIsExtractingModel] = useState(false);
+    const [extractionStep, setExtractionStep] = useState<string | null>(null);
     const [extractConfig, setExtractConfig] = useState<ExtractionConfig>({
         modelName: "", apiKey: "", text: "",
         relationDescription: defaultRelationsDescription,
         mentionDescription: defaultMentionsDescription,
+        entityDescription: defaultEntitiesDescription,
         dataDescription: defaultDataDescription
     });
     const [extractionResult, setExtractionResult] = useState<ExtractionResult | undefined>();
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [textOpen, setTextOpen] = useState(false);
+    const [bpmnInfoOpen, setBpmnInfoOpen] = useState(false);
 
     const [loading, setLoading] = useState(false);
 
@@ -122,12 +144,19 @@ const ModelerState = ({
         currentGraph?.name ?? initGraphName,
     );
 
+    function warnIfInvalidGuards(): boolean {
+        if (!modeler) return false;
+        const issues: string[] = modeler.validateGuards();
+        issues.forEach((msg: string) => toast.warning(msg));
+        return issues.length > 0;
+    }
 
     async function saveGraph() {
         if (!modeler) {
             return;
         }
 
+        if (warnIfInvalidGuards()) return false;
         let saved = false;
 
         try {
@@ -150,7 +179,7 @@ const ModelerState = ({
 
     useEffect(() => {
         // Fetch examples
-        fetch("/dcr-js/examples/generated_examples.txt")
+        fetch(`${import.meta.env.BASE_URL}examples/generated_examples.txt`)
             .then((response) => {
                 if (!response.ok) {
                     throw new Error(
@@ -179,6 +208,9 @@ const ModelerState = ({
             parse(data)
                 .then(() => {
                     setGraphName(importName ? importName : initGraphName);
+                    setExtractionResult(undefined);
+                    setTextOpen(false);
+                    warnIfInvalidGuards();
                 })
                 .catch((e) => {
                     console.log(e);
@@ -193,6 +225,7 @@ const ModelerState = ({
             return;
         }
 
+        if (warnIfInvalidGuards()) return;
         const data = await modeler.saveXML({format: true});
         const blob = new Blob([data.xml]);
 
@@ -204,6 +237,7 @@ const ModelerState = ({
             return;
         }
 
+        if (warnIfInvalidGuards()) return;
         const data = await modeler.saveDCRXML();
         const blob = new Blob([data.xml]);
 
@@ -311,7 +345,17 @@ const ModelerState = ({
                                 setMenuOpen(false);
                             }}>
                                 <div/>
-                                <>Open BPMN 2.0 XML</>
+                                <span style={{display: "flex", alignItems: "center", gap: "0.4rem"}}>
+                                    Open BPMN 2.0 XML
+                                    <BpmnInfoIcon
+                                        title="Supported BPMN elements"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setBpmnInfoOpen(true);
+                                        }}
+                                    />
+                                </span>
                             </FileUpload>
                         </StyledFileUpload>
                     ),
@@ -443,7 +487,7 @@ const ModelerState = ({
         if (!modeler) return;
         const elementRegistry = modeler.getElementRegistry();
         const events = Object.values(elementRegistry._elements).filter(
-            (element: any) => element.element.id.includes("Event")
+            (element: any) => element.element.type === "dcr:Event"
         );
         const uniqueActivities = new Set(
             events.map((element: any) => element.element.businessObject.description)
@@ -514,33 +558,87 @@ const ModelerState = ({
                 onSubmit={async (config) => {
                     if(!modeler) return;
 
+                    if (!confirm("This will replace your current diagram. Continue?")) return;
+
                     setIsExtractingModel(true);
+                    setExtractionStep(null);
                     try {
-                        const res = await extractGraph(config);
+                        const res = await extractGraph(config, setExtractionStep);
                         setExtractionResult(res)
-                        const xml = await layoutGraph(res.graph);
-                        console.log(xml);
+                        const roleMap: RoleMap = {};
+                        for (const r of res.doc.relations) {
+                            if (r.type.toLowerCase() !== "executes") continue;
+                            const actor = res.doc.mentions[r.headMentionIndex];
+                            const event = res.doc.mentions[r.tailMentionIndex];
+                            roleMap[event.text] = actor.text;
+                        }
+                        const xml = await layoutGraph(res.graph, undefined, roleMap);
                         await modeler.importXML(xml);
+                        setGraphName("Extracted Model");    
                     } catch (e) {
-                        console.log(e);
+                        console.error(e);
+                        toast.error(`Model extraction failed: ${e instanceof Error ? e.message : e}`);
                     } finally {
                         setModelExtractionOpen(false);
                         setIsExtractingModel(false);
+                        setExtractionStep(null);
                         setTextOpen(true);
                     }
 
 
                 }}
                 busy={isExtractingModel}
+                step={extractionStep}
             />
         );
     }
 
+    const handleProcessDescriptionChange = (doc: ProcessDescription) => {
+        setExtractionResult((prev) =>
+            prev ? {...prev, doc} : prev
+        );
+    };
+
+    const rebuildModel = async (
+        selectedMentions: Set<number>,
+        selectedRelations: Set<number>,
+        selectedVariables: Set<number>,
+        selectedExpressions: Set<number>
+    ) => {
+        if (!modeler || !extractionResult) return;
+        const filteredDoc = filterProcessDescription(
+            extractionResult.doc,
+            selectedMentions,
+            selectedRelations,
+            selectedVariables,
+            selectedExpressions
+        );
+        try {
+            const graph = buildGraph(filteredDoc);
+            const xml = await layoutGraph(graph);
+            await modeler.importXML(xml);
+        } catch (e) {
+            console.log(e);
+            alert(`Unable to rebuild model: ${e instanceof Error ? e.message : e}`);
+        }
+    };
+
     const renderExtractionResult = () => {
         if(!extractionResult) return null;
-        return <div style={{padding: 25}}>
+        return <div style={{
+            position: "absolute",
+            top: "5rem",
+            left: 0,
+            right: 0,
+            boxSizing: "border-box",
+            padding: 25,
+        }}>
             <h4>Extraction Result</h4>
-            <ExtractionResultView processDescription={extractionResult.doc} />
+            <ExtractionResultView
+                processDescription={extractionResult.doc}
+                onRebuild={rebuildModel}
+                onProcessDescriptionChange={handleProcessDescriptionChange}
+            />
         </div>;
     }
 
@@ -561,13 +659,15 @@ const ModelerState = ({
             />
             <div style={{width: 100, height: "100vh"}}>tze</div>
             <TopRightIcons>
-                <ModalMenu
-                    icon={TextButton}
-                    elements={[{customElement: renderExtractionResult()}]}
-                    bottomElements={[]}
-                    open={textOpen && !menuOpen && !modelExtractionOpen}
-                    setOpen={setTextOpen}
-                />
+                {extractionResult && (
+                    <ModalMenu
+                        icon={TextButton}
+                        elements={[{customElement: renderExtractionResult()}]}
+                        bottomElements={[]}
+                        open={textOpen && !menuOpen && !modelExtractionOpen}
+                        setOpen={setTextOpen}
+                    />
+                )}
                 <HeatmapButton
                     onClick={() => {
                         if (!modeler) return;
@@ -587,6 +687,21 @@ const ModelerState = ({
                             );
                             return;
                         }
+
+                        if (
+                            !tdmOpen &&
+                            Object.keys(elementRegistry._elements).find((element) => {
+                                const bo =
+                                    elementRegistry._elements[element].element.businessObject;
+                                return bo.guard || bo.time || bo.eventData;
+                            })
+                        ) {
+                            toast.warning(
+                                "Test driven modeling not supported for guards, time constraints, and variables...",
+                            );
+                            return;
+                        }
+
                         setTdmOpen(!tdmOpen);
                     }}
                     $clicked={tdmOpen}
@@ -625,6 +740,7 @@ const ModelerState = ({
             {examplesOpen && (
                 <Examples
                     examplesData={examplesData}
+                    openEditorXML={(xml) => open(xml, modeler?.importXML)}
                     openCustomXML={(xml) => open(xml, modeler?.importCustomXML)}
                     openDCRXML={(xml) => open(xml, modeler?.importDCRPortalXML)}
                     setExamplesOpen={setExamplesOpen}
@@ -632,6 +748,30 @@ const ModelerState = ({
                 />
             )}
             {renderExtractionDialogue()}
+            {bpmnInfoOpen && (
+                <Popup close={() => setBpmnInfoOpen(false)}>
+                    <h3>Supported BPMN Elements</h3>
+                    <p>The BPMN import currently supports:</p>
+                    <BpmnSupportList>
+                        <li>Start Event</li>
+                        <li>End Event</li>
+                        <li>Task</li>
+                        <li>Exclusive Gateway (XOR)</li>
+                        <li>Parallel Gateway (AND)</li>
+                        <li>Inclusive Gateway (OR)</li>
+                    </BpmnSupportList>
+                    <p>
+                        Gateways must follow the single-entry-single-exit (SESE) principle: 
+                        each split gateway is matched by exactly one join gateway of the 
+                        same type, forming a self-contained block.
+                    </p>
+                    <p>
+                        Other BPMN elements (e.g., subprocesses, timer/message/boundary events,
+                        pools and lanes, data objects) are not currently supported and may cause
+                        the import to fail or produce an incomplete graph.
+                    </p>
+                </Popup>
+            )}
         </>
     );
 };

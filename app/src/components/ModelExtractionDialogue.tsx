@@ -1,80 +1,145 @@
-import Popup from "../utilComponents/Popup";
+import {useState} from "react";
 import styled, {keyframes} from "styled-components";
 import {AiOutlineLoading} from "react-icons/ai";
+import Popup from "../utilComponents/Popup";
 import type {ExtractionConfig} from "dcr-engine/src/extraction.ts";
+import {models, examples} from "../resources/llmResources";
 
 export interface Props {
     config: ExtractionConfig;
     busy: boolean;
+    step?: string | null;
     onChange: (config: ExtractionConfig) => void;
     onClose: () => void;
     onSubmit: (config: ExtractionConfig) => void;
 }
 
-const FormContainer = styled.div`
-    display: block;
+const Root = styled.div`
+    font-size: 14px;
     width: 500px;
+`;
+
+const Heading = styled.h2`
+    margin: 0 0 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+`;
+
+const Accordion = styled.div`
+    border: 1px solid gainsboro;
+    border-radius: 6px;
+    overflow: hidden;
+`;
+
+const DrawerHeader = styled.button<{ $open: boolean }>`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-bottom: 1px solid gainsboro;
+    background: ${(props) => (props.$open ? "gainsboro" : "white")};
+    cursor: pointer;
+    font-weight: 600;
+    text-align: left;
+
+    &:hover {
+        background: gainsboro;
+    }
+`;
+
+const DrawerBody = styled.div`
+    padding: 0.75rem;
+    border-bottom: 1px solid gainsboro;
+`;
+
+const Field = styled.div`
+    display: block;
+    margin-bottom: 0.75rem;
+    position: relative;
+`;
+
+const FieldLabelRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+    position: relative;
+`;
+
+const FieldLabel = styled.span`
+    display: block;
+    font-weight: 600;
+`;
+
+const ExamplesList = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid gainsboro;
+    border-radius: 6px;
 `;
 
 const Input = styled.input`
     display: block;
     width: 100%;
-    border-radius: 3px;
+    box-sizing: border-box;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid gainsboro;
+    border-radius: 6px;
+    font-size: 14px;
 `;
 
 const Select = styled.select`
     display: block;
     width: 100%;
-    border-radius: 3px;
-    padding: 5px 10px;
-`;
-
-const Label = styled.label`
-    display: block;
-    width: 100%;
-    margin-top: 20px;
-    margin-bottom: 5px;
-    padding-top: 10px;
-    border-top: solid 1px darkgrey;
+    box-sizing: border-box;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid gainsboro;
+    border-radius: 6px;
+    font-size: 14px;
 `;
 
 const TextArea = styled.textarea`
     display: block;
     width: 100%;
-    border-radius: 3px;
-    padding: 5px 10px;
-    min-height: 100px;
+    box-sizing: border-box;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid gainsboro;
+    border-radius: 6px;
+    font-size: 14px;
+    min-height: 80px;
+    font-family: inherit;
 `;
 
 const Button = styled.button`
-    margin-top: 10px;
-    border-radius: 3px;
-    padding: 5px 10px;
-    border: solid 1px black;
-    background-color: #f6f6f6;
-
-    &:disabled {
-        cursor: not-allowed;
-    }
+    padding: 0.4rem 0.75rem;
+    border: 1px solid gainsboro;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-weight: 600;
 
     &:hover {
-        background-color: #e6e6e6;
+        background: gainsboro;
     }
 `;
 
-const SubmitButton = styled(Button)`
-    /*TODO: fix colors, take from theme?*/
-    display: block;
-    padding-left: 15px;
-    padding-right: 15px;
-    margin-left: auto;
-    margin-right: auto;
-    background-color: #d0d0ef;
+const ExampleToggle = styled(Button)`
+    padding: 0.15rem 0.5rem;
+    font-size: 0.8em;
+    font-weight: 500;
+`;
 
-    &:hover {
-        background-color: #b4b4e8;
-    }
-`
+const SubmitButton = styled(Button)`
+    display: block;
+    margin: 0.75rem auto 0;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+`;
 
 const spin = keyframes`
     0%{transform: rotate(0deg);}
@@ -91,119 +156,177 @@ const Spinner = styled(AiOutlineLoading)`
     animation: ${spin} 2s linear infinite;
 `;
 
-const examples = [
-    {id: "261/2004 (13)", text: "(13) Passengers whose flights are cancelled should be able either to obtain reimbursement of their tickets or to obtain re-routing under satisfactory conditions, and should be adequately cared for while awaiting a later flight."},
-    {id: "261/2004 (10)", text: "(10) Passengers denied boarding against their will should be able either to cancel their flights, with reimbursement of their tickets, or to continue them under satisfactory conditions, and should be adequately cared for while awaiting a later flight."},
-    {id: "261/2004 (12)", text: "(12) The trouble and inconvenience to passengers caused by cancellation of flights should also be reduced. This should be achieved by inducing carriers to inform passengers of cancellations before the scheduled time of departure and in addition to offer them reasonable re-routing, so that the passengers can make other arrangements. Air carriers should compensate passengers if they fail to do this, except when the cancellation occurs in extraordinary circumstances which could not have been avoided even if all reasonable measures had been taken."},
-    {id: "261/2004 Article 5", text: `Article 5
-
-Cancellation
-
-1. In case of cancellation of a flight, the passengers concerned shall:
-
-(a) be offered assistance by the operating air carrier in accordance with Article 8; and
-
-(b) be offered assistance by the operating air carrier in accordance with Article 9(1)(a) and 9(2), as well as, in event of re-routing when the reasonably expected time of departure of the new flight is at least the day after the departure as it was planned for the cancelled flight, the assistance specified in Article 9(1)(b) and 9(1)(c); and
-
-(c) have the right to compensation by the operating air carrier in accordance with Article 7, unless:
-
-(i) they are informed of the cancellation at least two weeks before the scheduled time of departure; or
-
-(ii) they are informed of the cancellation between two weeks and seven days before the scheduled time of departure and are offered re-routing, allowing them to depart no more than two hours before the scheduled time of departure and to reach their final destination less than four hours after the scheduled time of arrival; or
-
-(iii) they are informed of the cancellation less than seven days before the scheduled time of departure and are offered re-routing, allowing them to depart no more than one hour before the scheduled time of departure and to reach their final destination less than two hours after the scheduled time of arrival.
-
-2. When passengers are informed of the cancellation, an explanation shall be given concerning possible alternative transport.
-
-3. An operating air carrier shall not be obliged to pay compensation in accordance with Article 7, if it can prove that the cancellation is caused by extraordinary circumstances which could not have been avoided even if all reasonable measures had been taken.
-
-4. The burden of proof concerning the questions as to whether and when the passenger has been informed of the cancellation of the flight shall rest with the operating air carrier.`},
-]
+const ProgressText = styled.div`
+    margin-top: 10px;
+    text-align: center;
+    color: #555;
+    font-size: 0.9em;
+`;
 
 const ModelExtractionDialogue = (props: Props) => {
-    const models = [
-        {"label": "GPT 5.4 mini", "id": "gpt-5.4-mini-2026-03-17"},
-        {"label": "GPT 5.5", "id": "gpt-5.5-2026-04-23"},
-        {"label": "GPT 5.4", "id": "gpt-5.4-2026-03-05"},
-    ];
+    const [descriptionsOpen, setDescriptionsOpen] = useState(false);
+    const [showExamples, setShowExamples] = useState(false);
 
-    const renderSubmit = ( )=> {
-        if (props.busy) return <Spinner size="25" />;
+    const fields = [
+        {
+            id: "mentionDescription",
+            caption: "Entities",
+        },
+        {
+            id: "entityDescription",
+            caption: "Entity Resolution",
+        },
+        {
+            id: "relationDescription",
+            caption: "Relations",
+        },
+        {
+            id: "dataDescription",
+            caption: "Data and Time",
+        },
+    ] as const;
+
+    const renderSubmit = () => {
+        if (props.busy) {
+            return (
+                <>
+                    <Spinner size="25" />
+                    {props.step && <ProgressText>{props.step}</ProgressText>}
+                </>
+            );
+        }
 
         return (
             <SubmitButton
                 disabled={!props.config.apiKey || !props.config.modelName || !props.config.text}
                 onClick={() => {
-                    props.onSubmit(props.config)
+                    props.onSubmit(props.config);
                 }}
             >
                 Extract
             </SubmitButton>
         );
-    }
+    };
 
     return (
         <Popup close={() => props.onClose()}>
-            <div>
-                <h2>Extract Model from Text</h2>
+            <Root>
+                <Heading>Extract Model from Text</Heading>
 
-                <FormContainer>
-                    <Label htmlFor={"api-key"}>API Key</Label>
-                    <Input name={"api-key"} value={props.config.apiKey} onChange={e => props.onChange({
-                        ...props.config,
-                        apiKey: e.target.value,
-                    })} />
+                <Accordion>
+                    <DrawerBody>
+                        <Field>
+                            <FieldLabel>API Key</FieldLabel>
+                            <Input
+                                name={"api-key"}
+                                value={props.config.apiKey}
+                                onChange={(e) =>
+                                    props.onChange({
+                                        ...props.config,
+                                        apiKey: e.target.value,
+                                    })
+                                }
+                            />
+                        </Field>
 
-                    <Label htmlFor={"model"}>Model Name</Label>
-                    <Select value={props.config.modelName} name="model" onChange={e => props.onChange({
-                        ...props.config,
-                        modelName: e.target.value,
-                    })}>
-                        <option id={""} value={""}>Select Model</option>
-                        {
-                            models.map(m => (
-                                <option id={m.id} value={m.id}>
-                                    {m.label}
-                                </option>
-                            ))
-                        }
-                    </Select>
+                        <Field>
+                            <FieldLabel>Model Name</FieldLabel>
+                            <Select
+                                name="model"
+                                value={props.config.modelName}
+                                onChange={(e) =>
+                                    props.onChange({
+                                        ...props.config,
+                                        modelName: e.target.value,
+                                    })
+                                }
+                            >
+                                <option value={""}>Select Model</option>
+                                {models.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.label}
+                                    </option>
+                                ))}
+                            </Select>
+                        </Field>
 
-                    <Label>Textual Description</Label>
-                    <div style={{fontSize: ".85em"}}>Examples</div>
-                    {
-                        examples.map(e => <Button id={e.id} onClick={() => {props.onChange({...props.config, text: e.text})}}>{e.id}</Button>)
-                    }
+                        <Field>
+                            <FieldLabelRow>
+                                <FieldLabel>Textual Description</FieldLabel>
+                                <ExampleToggle
+                                    type="button"
+                                    onClick={() => setShowExamples((o) => !o)}
+                                >
+                                    {showExamples
+                                        ? "Use custom description"
+                                        : "Use an example"}
+                                </ExampleToggle>
+                            </FieldLabelRow>
+                            {showExamples ? (
+                                <ExamplesList>
+                                    {examples.map((e) => (
+                                        <Button
+                                            key={e.id}
+                                            type="button"
+                                            onClick={() => {
+                                                props.onChange({
+                                                    ...props.config,
+                                                    text: e.text,
+                                                });
+                                                setShowExamples(false);
+                                            }}
+                                        >
+                                            {e.id}
+                                        </Button>
+                                    ))}
+                                </ExamplesList>
+                            ) : (
+                                <TextArea
+                                    value={props.config.text}
+                                    onChange={(e) =>
+                                        props.onChange({
+                                            ...props.config,
+                                            text: e.target.value,
+                                        })
+                                    }
+                                />
+                            )}
+                        </Field>
+                    </DrawerBody>
 
-                    <div style={{fontSize: ".85em"}}>Custom</div>
-                    <TextArea value={props.config.text} onChange={e => props.onChange({
-                        ...props.config,
-                        text: e.target.value,
-                    })}/>
+                    <DrawerHeader
+                        $open={descriptionsOpen}
+                        onClick={() => setDescriptionsOpen((o) => !o)}
+                    >
+                        <span>Descriptions</span>
+                        <span aria-hidden="true">
+                            {descriptionsOpen ? "▴" : "▾"}
+                        </span>
+                    </DrawerHeader>
+                    {descriptionsOpen && (
+                        <DrawerBody>
+                            {fields.map((field) => (
+                                <Field key={field.id}>
+                                    <FieldLabel>{field.caption}</FieldLabel>
+                                    <TextArea
+                                        value={props.config[field.id]}
+                                        onChange={(e) =>
+                                            props.onChange({
+                                                ...props.config,
+                                                [field.id]: e.target.value,
+                                            })
+                                        }
+                                    />
+                                </Field>
+                            ))}
+                        </DrawerBody>
+                    )}
+                </Accordion>
 
-                    <Label>Descriptions</Label>
-                    <div style={{fontSize: ".85em"}}>Entities</div>
-                    <TextArea value={props.config.mentionDescription} onChange={e => props.onChange({
-                        ...props.config,
-                        mentionDescription: e.target.value,
-                    })}/>
-
-                    <div style={{fontSize: ".85em"}}>Relations</div>
-                    <TextArea value={props.config.relationDescription} onChange={e => props.onChange({
-                        ...props.config,
-                        relationDescription: e.target.value,
-                    })}/>
-
-                    <div style={{fontSize: ".85em"}}>Data and Time</div>
-                    <TextArea value={props.config.dataDescription} onChange={e => props.onChange({
-                        ...props.config,
-                        dataDescription: e.target.value,
-                    })}/>
-                    {renderSubmit()}
-                </FormContainer>
-            </div>
+                {renderSubmit()}
+            </Root>
         </Popup>
     );
-}
+};
 
 export default ModelExtractionDialogue;
