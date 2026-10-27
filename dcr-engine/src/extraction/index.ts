@@ -17,6 +17,7 @@ export { extractDataAndExpressions } from "./data";
 export { routePrompt, getProvider } from "./router";
 export { OpenAIProvider } from "./openaiProvider";
 export { AnthropicProvider } from "./anthropicProvider";
+export { GeminiProvider } from "./geminiProvider";
 export { LLMProvider } from "./llmProvider";
 
 export default async function extractGraph(

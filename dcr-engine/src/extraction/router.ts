@@ -1,5 +1,6 @@
 import { OpenAIProvider } from "./openaiProvider";
 import { AnthropicProvider } from "./anthropicProvider";
+import { GeminiProvider } from "./geminiProvider";
 import type { LLMProvider } from "./llmProvider";
 
 export interface RouterConfig {
@@ -15,6 +16,7 @@ const MODEL_PROVIDER_MAP: Record<string, string> = {
     "o3": "openai",
     "o4": "openai",
     "claude": "anthropic",
+    "gemini": "gemini",
 };
 
 function detectProvider(model: string): string {
@@ -35,6 +37,13 @@ export function getProvider(config: RouterConfig): LLMProvider {
         case "anthropic":
         case "claude":
             return new AnthropicProvider({
+                apiKey: config.apiKey,
+                model: config.model,
+                baseUrl: config.baseUrl,
+            });
+        case "gemini":
+        case "google":
+            return new GeminiProvider({
                 apiKey: config.apiKey,
                 model: config.model,
                 baseUrl: config.baseUrl,

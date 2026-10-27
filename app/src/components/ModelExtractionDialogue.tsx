@@ -2,8 +2,107 @@ import {useState} from "react";
 import styled, {keyframes} from "styled-components";
 import {AiOutlineLoading} from "react-icons/ai";
 import Popup from "../utilComponents/Popup";
-import type {ExtractionConfig} from "dcr-engine/src/extraction.ts";
-import {models, examples} from "../resources/llmResources";
+import type {ExtractionConfig} from "dcr-engine/src/extraction";
+import {examples} from "../resources/llmResources";
+
+interface ModelInfo {
+    label: string;
+    id: string;
+    pricing: {
+        inputPer1M: number;
+        outputPer1M: number;
+    }
+}
+
+interface ProviderMap {
+    [providerName: string]: ModelInfo[];
+}
+
+const modelsByProvider: ProviderMap = {
+    "OpenAI": [
+        {
+            label: "GPT-6 Astra",
+            id: "gpt-6-astra",
+            pricing: { inputPer1M: 10.00, outputPer1M: 50.00 }
+        },
+        {
+            label: "GPT-6.1 Sol",
+            id: "gpt-6.1-sol",
+            pricing: { inputPer1M: 2.00, outputPer1M: 10.00 }
+        },
+        {
+            label: "GPT-6.1 Terra",
+            id: "gpt-6.1-terra",
+            pricing: { inputPer1M: 1.00, outputPer1M: 5.00 }
+        },
+        {
+            label: "GPT-6 Luna",
+            id: "gpt-6-luna",
+            pricing: { inputPer1M: 0.10, outputPer1M: 0.50 }
+        },
+    ],
+
+    "Anthropic": [
+        {
+            label: "Claude Opus 5.5",
+            id: "claude-opus-5-5",
+            pricing: { inputPer1M: 4.00, outputPer1M: 20.00 }
+        },
+        {
+            label: "Claude Sonnet 5.5",
+            id: "claude-sonnet-5-5",
+            pricing: { inputPer1M: 2.00, outputPer1M: 10.00 }
+        },
+        {
+            label: "Claude Haiku 5.5",
+            id: "claude-haiku-5-5",
+            pricing: { inputPer1M: 0.10, outputPer1M: 0.50 }
+        },
+        {
+            label: "Claude Sonnet 5",
+            id: "claude-sonnet-5",
+            pricing: { inputPer1M: 2.00, outputPer1M: 10.00 }
+        },
+        {
+            label: "Claude Opus 4.8",
+            id: "claude-opus-4-8",
+            pricing: { inputPer1M: 5.00, outputPer1M: 25.00 }
+        },
+        {
+            label: "Claude Sonnet 4.6",
+            id: "claude-sonnet-4-6",
+            pricing: { inputPer1M: 3.00, outputPer1M: 15.00 }
+        },
+    ],
+
+    "Google": [
+        {
+            label: "Gemini 4 Argon",
+            id: "gemini-4-argon",
+            pricing: { inputPer1M: 2.00, outputPer1M: 10.00 }
+        },
+        {
+            label: "Gemini 3.8 Flash",
+            id: "gemini-3.8-flash",
+            pricing: { inputPer1M: 0.75, outputPer1M: 3.75 }
+        },
+        {
+            label: "Gemini 3.6 Flash",
+            id: "gemini-3.6-flash",
+            pricing: { inputPer1M: 0.75, outputPer1M: 3.75 }
+        },
+        {
+            label: "Gemini 3.5 Flash-Lite",
+            id: "gemini-3.5-flash-lite",
+            pricing: { inputPer1M: 0.30, outputPer1M: 2.50 }
+        },
+        {
+            label: "Gemini 3.1 Flash-Lite",
+            id: "gemini-3.1-flash-lite",
+            pricing: { inputPer1M: 0.25, outputPer1M: 1.50 }
+        },
+    ],
+};
 
 export interface Props {
     config: ExtractionConfig;
@@ -102,6 +201,8 @@ const Select = styled.select`
     border-radius: 6px;
     font-size: 14px;
 `;
+
+
 
 const TextArea = styled.textarea`
     display: block;
@@ -230,7 +331,7 @@ const ModelExtractionDialogue = (props: Props) => {
                         </Field>
 
                         <Field>
-                            <FieldLabel>Model Name</FieldLabel>
+                            <FieldLabel>Model</FieldLabel>
                             <Select
                                 name="model"
                                 value={props.config.modelName}
@@ -242,10 +343,14 @@ const ModelExtractionDialogue = (props: Props) => {
                                 }
                             >
                                 <option value={""}>Select Model</option>
-                                {models.map((m) => (
-                                    <option key={m.id} value={m.id}>
-                                        {m.label}
-                                    </option>
+                                {Object.keys(modelsByProvider).map((provider) => (
+                                    <optgroup key={provider} label={provider}>
+                                        {modelsByProvider[provider].map((m) => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.label}
+                                            </option>
+                                        ))}
+                                    </optgroup>
                                 ))}
                             </Select>
                         </Field>
