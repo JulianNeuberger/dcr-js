@@ -819,19 +819,19 @@ const ExtractionResultView: React.FC<Props> = ({
     };
 
     const coveredMentionIndices = new Set<number>();
-    for (const entity of entities) {
+    for (const entity of entities as Entity[]) {
         for (const index of entity.mentionIndices) {
             coveredMentionIndices.add(index);
         }
     }
 
-    const uncoveredMentions = mentions
-        .map((mention, index) => ({mention, index}))
-        .filter(({index}) => !coveredMentionIndices.has(index));
+    const uncoveredMentions = (mentions as Mention[])
+        .map((mention: Mention, index: number) => ({mention, index}))
+        .filter(({index}: {index: number}) => !coveredMentionIndices.has(index));
 
     const typeGroups = new Map<string, {entity: Entity; entityIndex: number}[]>();
-    entities.forEach((entity, entityIndex) => {
-        const representative = mentions[entity.representativeIndex];
+    (entities as Entity[]).forEach((entity: Entity, entityIndex: number) => {
+        const representative = (mentions as Mention[])[entity.representativeIndex];
         if (!representative) return;
         const type = representative.type;
         const list = typeGroups.get(type) ?? [];
@@ -843,12 +843,12 @@ const sortedTypes = Array.from(typeGroups.keys()).sort((a, b) =>
     );
 
     const typeCounts = new Map<string, {checked: number; total: number}>();
-    for (const [type, entries] of typeGroups) {
+    for (const [type, entries] of typeGroups as [string, {entity: Entity; entityIndex: number}[]][]) {
         const counts = entries.reduce(
-            (accumulator, {entity}) => ({
+            (accumulator: {checked: number, total: number}, {entity}: {entity: Entity}) => ({
                 checked:
                     accumulator.checked +
-                    entity.mentionIndices.filter((index) =>
+                    (entity.mentionIndices as number[]).filter((index: number) =>
                         selectedMentions.has(index)
                     ).length,
                 total: accumulator.total + entity.mentionIndices.length,
@@ -861,12 +861,12 @@ const sortedTypes = Array.from(typeGroups.keys()).sort((a, b) =>
     const draggedSourceEntityIndex =
         draggedMentionIndex === null
             ? -1
-            : entities.findIndex((entity) =>
-                  entity.mentionIndices.includes(draggedMentionIndex)
+            : (entities as Entity[]).findIndex((entity: Entity) =>
+                  entity.mentionIndices.includes(draggedMentionIndex as number)
               );
     const canCreateNewFromDrag =
         draggedSourceEntityIndex !== -1 &&
-        (entities[draggedSourceEntityIndex]?.mentionIndices.length ?? 0) > 1;
+        ((entities as Entity[])[draggedSourceEntityIndex]?.mentionIndices.length ?? 0) > 1;
 
     return (
         <Root>

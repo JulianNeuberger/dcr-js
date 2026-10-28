@@ -35,7 +35,7 @@ import TestDrivenModeling from "./TestDrivenModeling";
 import {useBPMN} from '../utilComponents/useBPMN';
 import {BsFiletypeDoc, BsStars} from "react-icons/bs";
 import ModelExtractionDialogue from "./ModelExtractionDialogue.tsx";
-import type {ExtractionConfig, ExtractionResult} from "dcr-engine/src/extraction.ts";
+import type {ExtractionConfig, ExtractionResult} from "dcr-engine/src/extraction";
 import ExtractionResultView from "./ExtractionResultView.tsx";
 import Popup from "../utilComponents/Popup";
 
