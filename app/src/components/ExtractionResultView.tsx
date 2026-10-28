@@ -5,7 +5,7 @@ import type {
     Mention,
     ProcessDescription,
     Relation,
-} from "dcr-engine/src/extraction.ts";
+} from "dcr-engine/src/extraction";
 
 type Props = {
     processDescription: ProcessDescription;
@@ -843,8 +843,8 @@ const sortedTypes = Array.from(typeGroups.keys()).sort((a, b) =>
     );
 
     const typeCounts = new Map<string, {checked: number; total: number}>();
-    for (const [type, entries] of typeGroups as [string, {entity: Entity; entityIndex: number}[]][]) {
-        const counts = entries.reduce(
+    for (const [type, entries] of Array.from(typeGroups) as [string, {entity: Entity; entityIndex: number}[]][]) {
+        const counts = (entries as {entity: Entity; entityIndex: number}[]).reduce(
             (accumulator: {checked: number, total: number}, {entity}: {entity: Entity}) => ({
                 checked:
                     accumulator.checked +
