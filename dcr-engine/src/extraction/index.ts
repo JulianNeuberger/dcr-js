@@ -19,6 +19,7 @@ export { OpenAIProvider } from "./openaiProvider";
 export { AnthropicProvider } from "./anthropicProvider";
 export { GeminiProvider } from "./geminiProvider";
 export { LLMProvider } from "./llmProvider";
+export * from "./agents";
 
 export default async function extractGraph(
     config: ExtractionConfig,
