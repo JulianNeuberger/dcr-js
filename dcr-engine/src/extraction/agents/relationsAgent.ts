@@ -27,13 +27,23 @@ export class RelationsAgent extends ExtractionAgent<RelationsAgentInput, Relatio
         return input;
     }
 
-    parseResponse(response: string): Relation[] {
+    parseResponse(response: string, input: RelationsAgentInput): Relation[] {
+        const typeByName = new Map<string, string>();
+        for (const d of input.relationDescriptions) {
+            typeByName.set(d.name, d.type);
+        }
+
         const relations: Relation[] = [];
         for (const rawRelation of response.trim().split("\n")) {
             if (!rawRelation.trim()) continue;
             const parts = rawRelation.split("\t");
             if (parts.length < 3) continue;
-            const [relationType, head, tail] = parts;
+            const [relationName, head, tail] = parts;
+            const relationType = typeByName.get(relationName);
+            if (!relationType) {
+                console.error(`Ignoring relation '${relationName}', no matching relation type definition found.`);
+                continue;
+            }
             relations.push({
                 type: relationType,
                 headMentionIndex: Number(head),

@@ -28,12 +28,17 @@ export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]
     }
 
     parseResponse(response: string, input: MentionsAgentInput): Mention[] {
+        const typeByName = new Map<string, string>();
+        for (const d of input.mentionDescriptions) {
+            typeByName.set(d.name, d.type);
+        }
+
         const mentions: Mention[] = [];
         for (const rawMention of response.trim().split("\n")) {
             if (!rawMention.trim()) continue;
             const parts = rawMention.trim().split("\t");
             if (parts.length < 3) continue;
-            const [mentionText, mentionType, mentionSentenceStr] = parts;
+            const [mentionText, mentionName, mentionSentenceStr] = parts;
             const mentionSentence = Number(mentionSentenceStr);
 
             if (input.doc.sentences.length <= mentionSentence) {
@@ -43,6 +48,12 @@ export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]
 
             if (input.doc.sentences[mentionSentence].toLowerCase().indexOf(mentionText.toLowerCase()) === -1) {
                 console.error(`Ignoring '${mentionText}', which is not in the referenced sentence ${mentionSentence} ('${input.doc.sentences[mentionSentence]}').`);
+                continue;
+            }
+
+            const mentionType = typeByName.get(mentionName);
+            if (!mentionType) {
+                console.error(`Ignoring '${mentionText}', no matching mention type definition for name '${mentionName}'.`);
                 continue;
             }
 
