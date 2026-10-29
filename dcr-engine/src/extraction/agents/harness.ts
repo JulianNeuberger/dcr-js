@@ -32,6 +32,18 @@ function groupByOrder<T extends { order: number }>(items: T[]): T[][] {
     return groups;
 }
 
+function pluralize(name: string): string {
+    return name + "s";
+}
+
+function formatExtractionStep(names: string[]): string {
+    const pluralized = names.map(pluralize);
+    if (pluralized.length === 1) {
+        return `Extracting ${pluralized[0]}`;
+    }
+    return `Extracting ${pluralized.slice(0, -1).join(", ")} and ${pluralized[pluralized.length - 1]}`;
+}
+
 export class ExtractionHarness {
     private mentionsAgent: MentionsAgent;
     private entitiesAgent: EntitiesAgent;
@@ -63,10 +75,11 @@ export class ExtractionHarness {
         const doc = preprocessText(config.text);
 
         // --- Mentions: run by order groups ---
-        onStep?.("Extracting actors and events");
         const mentionGroups = groupByOrder(config.mentionDescriptions);
         doc.mentions = [];
         for (const group of mentionGroups) {
+            console.log(`Running ${group.map(g => g.name)}`);
+            onStep?.(formatExtractionStep(group.map((d) => d.name)));
             const result = await this.mentionsAgent.run({
                 doc,
                 apiKey: config.apiKey,
@@ -87,10 +100,11 @@ export class ExtractionHarness {
         doc.entities = entitiesResult.data;
 
         // --- Relations: run by order groups ---
-        onStep?.("Extracting relations");
         const relationGroups = groupByOrder(config.relationDescriptions);
         doc.relations = [];
         for (const group of relationGroups) {
+            console.log(`Running ${group.map(g => g.name)}`);
+            onStep?.(formatExtractionStep(group.map((d) => d.name)));
             const result = await this.relationsAgent.run({
                 doc,
                 apiKey: config.apiKey,
