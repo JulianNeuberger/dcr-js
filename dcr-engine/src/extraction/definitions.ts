@@ -5,16 +5,40 @@ export const defaultMentionDescriptions: MentionTypeDefinition[] = [
         type: "Event",
         name: "Event",
         description:
-            "These are events, preconditions or outcomes relevant to law and regulation. " +
-            "Events can be immaterial, e.g., providing support, help or compensation. " +
-            "Beyond that events can also be inputs, that is data that is relevant to the law (e.g. numbers, strings).",
+            "Definition of an event, occurrence, or circumstance that is " +
+            "relevant to the regulation or law.",
+        order: 1,
+    },
+    {
+        type: "Event",
+        name: "Obligation",
+        description:
+            "An obligation that is the result of some event that happened " +
+            "previously.",
+        order: 1,
+    },
+    {
+        type: "Event",
+        name: "Permission",
+        description:
+            "A permission that is the result of some event that happened " +
+            "previously.",
+        order: 1,
+    },
+    {
+        type: "Event",
+        name: "Exception",
+        description:
+            "Definition of conditions that constitute an exception " +
+            "to the applicability of other obligations or permissions.",
         order: 1,
     },
     {
         type: "Actor",
         name: "Actor",
         description:
-            "Nouns and pronouns, that describe a person, system, or company that is responsible for executing an event in the process.",
+            "Nouns and pronouns, that describe a person, system, or company " +
+            "that plays an active role in the scenario of the regulation, law.",
         order: 2,
     },
 ];
