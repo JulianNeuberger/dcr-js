@@ -10,6 +10,28 @@ export interface ExtractionHarnessOptions {
     includeData?: boolean;
 }
 
+function groupByOrder<T extends { order: number }>(items: T[]): T[][] {
+    const sorted = [...items].sort((a, b) => a.order - b.order);
+    const groups: T[][] = [];
+    let currentGroup: T[] = [];
+    let currentOrder: number | null = null;
+
+    for (const item of sorted) {
+        if (currentOrder === null || item.order === currentOrder) {
+            currentGroup.push(item);
+            currentOrder = item.order;
+        } else {
+            groups.push(currentGroup);
+            currentGroup = [item];
+            currentOrder = item.order;
+        }
+    }
+    if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+    }
+    return groups;
+}
+
 export class ExtractionHarness {
     private mentionsAgent: MentionsAgent;
     private entitiesAgent: EntitiesAgent;
@@ -39,16 +61,26 @@ export class ExtractionHarness {
     ): Promise<ExtractionResult> {
         const includeData = options.includeData !== false;
         const doc = preprocessText(config.text);
-        
+
+        // --- Mentions: run by order groups ---
         onStep?.("Extracting actors and events");
-        const mentionsResult = await this.mentionsAgent.run({
-            doc,
-            apiKey: config.apiKey,
-            modelName: config.modelName,
-            mentionDescriptions: config.mentionDescriptions,
-        });
-        doc.mentions = mentionsResult.data;
-        
+        const mentionGroups = groupByOrder(config.mentionDescriptions);
+        doc.mentions = [];
+        for (const group of mentionGroups) {
+            const results = await Promise.all(group.map((d) =>
+                this.mentionsAgent.run({
+                    doc,
+                    apiKey: config.apiKey,
+                    modelName: config.modelName,
+                    mentionDescriptions: [d],
+                })
+            ));
+            for (const r of results) {
+                doc.mentions.push(...r.data);
+            }
+        }
+
+        // --- Entities ---
         onStep?.("Resolving entities");
         const entitiesResult = await this.entitiesAgent.run({
             doc,
@@ -57,16 +89,25 @@ export class ExtractionHarness {
             description: config.entityDescription,
         });
         doc.entities = entitiesResult.data;
-        
+
+        // --- Relations: run by order groups ---
         onStep?.("Extracting relations");
-        const relationsResult = await this.relationsAgent.run({
-            doc,
-            apiKey: config.apiKey,
-            modelName: config.modelName,
-            relationDescriptions: config.relationDescriptions,
-        });
-        doc.relations = relationsResult.data;
-        
+        const relationGroups = groupByOrder(config.relationDescriptions);
+        doc.relations = [];
+        for (const group of relationGroups) {
+            const results = await Promise.all(group.map((d) =>
+                this.relationsAgent.run({
+                    doc,
+                    apiKey: config.apiKey,
+                    modelName: config.modelName,
+                    relationDescriptions: [d],
+                })
+            ));
+            for (const r of results) {
+                doc.relations.push(...r.data);
+            }
+        }
+
         if (includeData) {
             onStep?.("Extracting data guards");
             const dataResult = await this.dataAgent.run({

@@ -39,11 +39,13 @@ export type ProcessDescription = {
 export type MentionTypeDefinition = {
     type: string;
     description: string;
+    order: number;
 };
 
 export type RelationTypeDefinition = {
     type: string;
     description: string;
+    order: number;
 };
 
 export type ExtractionConfig = {

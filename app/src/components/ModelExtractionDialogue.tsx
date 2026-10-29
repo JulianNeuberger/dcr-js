@@ -398,8 +398,21 @@ const ModelExtractionDialogue = (props: Props) => {
                                         <span style={{ width: '80px', fontSize: '12px', color: '#666', fontWeight: 500 }}>
                                             {d.type}
                                         </span>
+                                        <Select
+                                            style={{ width: '60px' }}
+                                            value={String(d.order ?? 1)}
+                                            onChange={(e) => {
+                                                const next = [...props.config.mentionDescriptions];
+                                                next[i] = { ...next[i], order: Number(e.target.value) };
+                                                props.onChange({ ...props.config, mentionDescriptions: next });
+                                            }}
+                                        >
+                                            {Array.from({ length: 10 }, (_, k) => k + 1).map((n) => (
+                                                <option key={n} value={String(n)}>{n}</option>
+                                            ))}
+                                        </Select>
                                         <TextArea
-                                            style={{ width: 'calc(100% - 80px)', minHeight: '60px' }}
+                                            style={{ width: 'calc(100% - 150px)', minHeight: '60px' }}
                                             value={d.description}
                                             placeholder="Description"
                                             onChange={(e) => {
@@ -430,8 +443,21 @@ const ModelExtractionDialogue = (props: Props) => {
                                         <span style={{ width: '80px', fontSize: '12px', color: '#666', fontWeight: 500 }}>
                                             {d.type}
                                         </span>
+                                        <Select
+                                            style={{ width: '60px' }}
+                                            value={String(d.order ?? 1)}
+                                            onChange={(e) => {
+                                                const next = [...props.config.relationDescriptions];
+                                                next[i] = { ...next[i], order: Number(e.target.value) };
+                                                props.onChange({ ...props.config, relationDescriptions: next });
+                                            }}
+                                        >
+                                            {Array.from({ length: 10 }, (_, k) => k + 1).map((n) => (
+                                                <option key={n} value={String(n)}>{n}</option>
+                                            ))}
+                                        </Select>
                                         <TextArea
-                                            style={{ width: 'calc(100% - 80px)', minHeight: '60px' }}
+                                            style={{ width: 'calc(100% - 150px)', minHeight: '60px' }}
                                             value={d.description}
                                             placeholder="Description"
                                             onChange={(e) => {
