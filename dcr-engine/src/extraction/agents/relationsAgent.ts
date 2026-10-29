@@ -46,6 +46,7 @@ export class RelationsAgent extends ExtractionAgent<RelationsAgentInput, Relatio
             }
             relations.push({
                 type: relationType,
+                name: relationName,
                 headMentionIndex: Number(head),
                 tailMentionIndex: Number(tail),
             });

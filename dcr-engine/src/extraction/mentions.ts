@@ -15,6 +15,11 @@ export async function extractEntityMentions(
         i++;
     }
 
+    const typeByName = new Map<string, string>();
+    for (const d of mentionDescriptions) {
+        typeByName.set(d.name, d.type);
+    }
+
     const mentions: Mention[] = [];
 
     const descriptionText = mentionDescriptions
@@ -28,7 +33,7 @@ export async function extractEntityMentions(
     const result = await routePrompt(prompt, apiKey, model);
 
     for (const rawMention of result.trim().split("\n")) {
-        const [mentionText, mentionType, mentionSentenceStr] = rawMention.trim().split("\t");
+        const [mentionText, mentionName, mentionSentenceStr] = rawMention.trim().split("\t");
         const mentionSentence = Number(mentionSentenceStr);
 
         if (doc.sentences.length <= mentionSentence){
@@ -41,9 +46,16 @@ export async function extractEntityMentions(
             continue;
         }
 
+        const mentionType = typeByName.get(mentionName);
+        if (!mentionType) {
+            console.error(`Ignoring '${mentionText}', no matching mention type definition for name '${mentionName}'.`);
+            continue;
+        }
+
         const mention: Mention = {
             text: mentionText,
             type: mentionType,
+            name: mentionName,
             sentence: mentionSentence,
         }
 

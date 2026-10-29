@@ -60,6 +60,7 @@ export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]
             mentions.push({
                 text: mentionText,
                 type: mentionType,
+                name: mentionName,
                 sentence: mentionSentence,
             });
         }

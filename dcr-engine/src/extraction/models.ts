@@ -11,6 +11,7 @@ export type Expression = {
 export type Mention = {
     text: string;
     type: string;
+    name: string;
     sentence: number;
 };
 
@@ -22,6 +23,7 @@ export type Entity = {
 
 export type Relation = {
     type: string;
+    name: string;
     headMentionIndex: number;
     tailMentionIndex: number;
 };

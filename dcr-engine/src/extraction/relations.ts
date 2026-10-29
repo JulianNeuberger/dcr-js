@@ -21,11 +21,22 @@ export async function extractRelations(
 
     const result = await routePrompt(prompt, apiKey, model);
 
+    const typeByName = new Map<string, string>();
+    for (const d of relationDescriptions) {
+        typeByName.set(d.name, d.type);
+    }
+
     const relations: Relation[] = [];
     for (const rawRelation of result.trim().split("\n")) {
-        const [relationType, head, tail] = rawRelation.split("\t");
+        const [relationName, head, tail] = rawRelation.split("\t");
+        const relationType = typeByName.get(relationName);
+        if (!relationType) {
+            console.error(`Ignoring relation '${relationName}', no matching relation type definition found.`);
+            continue;
+        }
         relations.push({
             type: relationType,
+            name: relationName,
             headMentionIndex: Number(head),
             tailMentionIndex: Number(tail),
         });
