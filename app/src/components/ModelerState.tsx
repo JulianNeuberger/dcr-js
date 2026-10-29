@@ -120,7 +120,7 @@ const ModelerState = ({
         relationDescriptions: defaultRelationDescriptions,
         entityDescription: defaultEntityDescription,
         dataDescription: defaultDataDescription,
-        includeData: true
+        includeData: false
     });
     const [extractionResult, setExtractionResult] = useState<ExtractionResult | undefined>();
 

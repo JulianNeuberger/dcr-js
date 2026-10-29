@@ -32,6 +32,10 @@ export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]
         for (const d of input.mentionDescriptions) {
             typeByName.set(d.name, d.type);
         }
+        console.log(typeByName);
+        for (const e in typeByName.entries()) {
+            console.log(`${e[0]}: ${e[1]}`);
+        }
 
         const mentions: Mention[] = [];
         for (const rawMention of response.trim().split("\n")) {
