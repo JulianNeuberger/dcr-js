@@ -18,8 +18,8 @@ export async function extractEntityMentions(
     const mentions: Mention[] = [];
 
     const descriptionText = mentionDescriptions
-        .filter((d) => d.type && d.description)
-        .map((d) => `${d.type}: ${d.description}`)
+        .filter((d) => d.type && d.name && d.description)
+        .map((d) => `${d.name}: ${d.description}`)
         .join("\n");
 
     let prompt = mentionPrompt;

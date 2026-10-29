@@ -17,8 +17,8 @@ export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]
             i++;
         }
         const descriptionText = input.mentionDescriptions
-            .filter((d) => d.type && d.description)
-            .map((d) => `${d.type}: ${d.description}`)
+            .filter((d) => d.type && d.name && d.description)
+            .map((d) => `${d.name}: ${d.description}`)
             .join("\n");
 
         let prompt = mentionPrompt;

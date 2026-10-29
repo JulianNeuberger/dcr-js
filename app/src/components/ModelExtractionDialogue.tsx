@@ -414,6 +414,16 @@ const ModelExtractionDialogue = (props: Props) => {
                                         <span style={{ width: '80px', fontSize: '12px', color: '#666', fontWeight: 500 }}>
                                             {d.type}
                                         </span>
+                                        <Input
+                                            style={{ width: '140px' }}
+                                            value={d.name}
+                                            placeholder="Name"
+                                            onChange={(e) => {
+                                                const next = [...props.config.mentionDescriptions];
+                                                next[i] = { ...next[i], name: e.target.value };
+                                                props.onChange({ ...props.config, mentionDescriptions: next });
+                                            }}
+                                        />
                                         <Select
                                             style={{ width: '60px' }}
                                             value={String(d.order ?? 1)}
@@ -428,7 +438,7 @@ const ModelExtractionDialogue = (props: Props) => {
                                             ))}
                                         </Select>
                                         <TextArea
-                                            style={{ width: 'calc(100% - 150px)', minHeight: '60px' }}
+                                            style={{ width: 'calc(100% - 290px)', minHeight: '60px' }}
                                             value={d.description}
                                             placeholder="Description"
                                             onChange={(e) => {
@@ -459,6 +469,16 @@ const ModelExtractionDialogue = (props: Props) => {
                                         <span style={{ width: '80px', fontSize: '12px', color: '#666', fontWeight: 500 }}>
                                             {d.type}
                                         </span>
+                                        <Input
+                                            style={{ width: '140px' }}
+                                            value={d.name}
+                                            placeholder="Name"
+                                            onChange={(e) => {
+                                                const next = [...props.config.relationDescriptions];
+                                                next[i] = { ...next[i], name: e.target.value };
+                                                props.onChange({ ...props.config, relationDescriptions: next });
+                                            }}
+                                        />
                                         <Select
                                             style={{ width: '60px' }}
                                             value={String(d.order ?? 1)}
@@ -473,7 +493,7 @@ const ModelExtractionDialogue = (props: Props) => {
                                             ))}
                                         </Select>
                                         <TextArea
-                                            style={{ width: 'calc(100% - 150px)', minHeight: '60px' }}
+                                            style={{ width: 'calc(100% - 290px)', minHeight: '60px' }}
                                             value={d.description}
                                             placeholder="Description"
                                             onChange={(e) => {

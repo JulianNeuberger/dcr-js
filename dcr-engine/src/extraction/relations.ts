@@ -11,8 +11,8 @@ export async function extractRelations(
 ): Promise<Relation[]> {
     const taggedSentences = tagMentions(doc.sentences, doc.mentions);
     const descriptionText = relationDescriptions
-        .filter((d) => d.type && d.description)
-        .map((d) => `${d.type}: ${d.description}`)
+        .filter((d) => d.type && d.name && d.description)
+        .map((d) => `${d.name}: ${d.description}`)
         .join("\n");
 
     let prompt = relationsPrompt;
