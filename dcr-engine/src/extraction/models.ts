@@ -56,6 +56,7 @@ export type ExtractionConfig = {
     entityDescription: string;
     relationDescriptions: RelationTypeDefinition[];
     dataDescription: string;
+    includeData: boolean;
 }
 
 export type ExtractionResult = {

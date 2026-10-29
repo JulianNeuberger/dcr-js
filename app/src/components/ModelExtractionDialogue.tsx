@@ -338,6 +338,22 @@ const ModelExtractionDialogue = (props: Props) => {
 
                         <Field>
                             <FieldLabelRow>
+                                <FieldLabel>Include Data &amp; Expressions</FieldLabel>
+                                <input
+                                    type="checkbox"
+                                    checked={props.config.includeData}
+                                    onChange={(e) =>
+                                        props.onChange({
+                                            ...props.config,
+                                            includeData: e.target.checked,
+                                        })
+                                    }
+                                />
+                            </FieldLabelRow>
+                        </Field>
+
+                        <Field>
+                            <FieldLabelRow>
                                 <FieldLabel>Textual Description</FieldLabel>
                                 <ExampleToggle
                                     type="button"

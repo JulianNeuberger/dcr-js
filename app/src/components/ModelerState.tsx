@@ -131,7 +131,8 @@ const ModelerState = ({
         mentionDescriptions: defaultMentionDescriptions,
         relationDescriptions: defaultRelationDescriptions,
         entityDescription: defaultEntitiesDescription,
-        dataDescription: defaultDataDescription
+        dataDescription: defaultDataDescription,
+        includeData: true
     });
     const [extractionResult, setExtractionResult] = useState<ExtractionResult | undefined>();
 

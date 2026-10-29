@@ -32,13 +32,19 @@ export default async function extractGraph(
     doc.entities = await resolveEntities(config.modelName, doc, config.apiKey, config.entityDescription);
     onStep?.("Extracting relations");
     doc.relations = await extractRelations(config.modelName, doc, config.apiKey, config.relationDescriptions);
-    onStep?.("Extracting data guards");
-    const {
-        variables,
-        expressions
-    } = await extractDataAndExpressions(config.modelName, doc, config.apiKey, config.dataDescription);
-    doc.variables = variables;
-    doc.expressions = expressions;
+
+    if (config.includeData !== false) {
+        onStep?.("Extracting data guards");
+        const {
+            variables,
+            expressions
+        } = await extractDataAndExpressions(config.modelName, doc, config.apiKey, config.dataDescription);
+        doc.variables = variables;
+        doc.expressions = expressions;
+    } else {
+        doc.variables = [];
+        doc.expressions = [];
+    }
 
     onStep?.("Building DCR graph");
     const graph = buildGraph(doc);

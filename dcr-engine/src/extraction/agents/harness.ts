@@ -59,7 +59,7 @@ export class ExtractionHarness {
         onStep?: (step: string) => void,
         options: ExtractionHarnessOptions = {}
     ): Promise<ExtractionResult> {
-        const includeData = options.includeData !== false;
+        const includeData = options.includeData ?? config.includeData ?? true;
         const doc = preprocessText(config.text);
 
         // --- Mentions: run by order groups ---
