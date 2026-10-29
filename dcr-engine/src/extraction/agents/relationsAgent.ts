@@ -1,10 +1,10 @@
 import { ExtractionAgent, type AgentContext } from "./base";
-import type { Relation } from "../models";
+import type { Relation, RelationTypeDefinition } from "../models";
 import relationsPrompt from "../../prompts/relations";
 import { tagMentions } from "../preprocessing";
 
 export interface RelationsAgentInput extends AgentContext {
-    description: string;
+    relationDescriptions: RelationTypeDefinition[];
 }
 
 export class RelationsAgent extends ExtractionAgent<RelationsAgentInput, Relation[]> {
@@ -12,9 +12,14 @@ export class RelationsAgent extends ExtractionAgent<RelationsAgentInput, Relatio
 
     getPrompt(input: RelationsAgentInput): string {
         const taggedSentences = tagMentions(input.doc.sentences, input.doc.mentions);
+        const descriptionText = input.relationDescriptions
+            .filter((d) => d.type && d.description)
+            .map((d) => `${d.type}: ${d.description}`)
+            .join("\n");
+
         let prompt = relationsPrompt;
         prompt = prompt.replaceAll("{{text}}", taggedSentences.join('\n'));
-        prompt = prompt.replaceAll("{{description}}", input.description);
+        prompt = prompt.replaceAll("{{description}}", descriptionText);
         return prompt;
     }
 

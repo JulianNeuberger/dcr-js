@@ -90,14 +90,18 @@ const BpmnSupportList = styled.ul`
   padding-left: 1.5rem;
 `;
 
-const defaultRelationsDescription = `**executes**: Focus on actors. Extract a relation of type "executes", if the text describes that this actor (head) is responsible for the event (tail).
-**condition**: Focus on events. Extract a relation of type "condition", if one event (head) must be exectued before another (tail) event can be executed (first event is the "condition" for the second event).
-**response**: Focus on events. Extract a relation of type "response", if executing one event (head) neccessitates the execution of another (tail) event ("responding" to the first event).
-**includes**: Focus on events. Extract a relation of type "includes", if executing one event (head) enables the execution of another (tail) event again, even if it was execluded before.
-**excludes**: Focus on events. Extract a relation of type "excludes", if executing one event (head) makes executing another (tail) event impossible, i.e., prevents its execution. Excludes relations can be reflexive, e.g., if one event can only be executed once.`;
+const defaultMentionDescriptions = [
+    { type: "Event", description: "These are events, preconditions or outcomes relevant to law and regulation. Events can be immaterial, e.g., providing support, help or compensation. Beyond that events can also be inputs, that is data that is relevant to the law (e.g. numbers, strings)." },
+    { type: "Actor", description: "Nouns and pronouns, that describe a person, system, or company that is responsible for executing an event in the process." },
+];
 
-const defaultMentionsDescription = `**Event**: These are events, preconditions or outcomes relevant to law and regulation. Events can be immaterial, e.g., providing support, help or compensation. Beyond that events can also be inputs, that is data that is relevant to the law (e.g. numbers, strings).
-**Actor**: Nouns and pronouns, that describe a person, system, or company that is responsible for executing an event in the process.`;
+const defaultRelationDescriptions = [
+    { type: "executes", description: "Focus on actors. Extract a relation of type 'executes', if the text describes that this actor (head) is responsible for the event (tail)." },
+    { type: "condition", description: "Focus on events. Extract a relation of type 'condition', if one event (head) must be executed before another (tail) event can be executed (first event is the 'condition' for the second event)." },
+    { type: "response", description: "Focus on events. Extract a relation of type 'response', if executing one event (head) necessitates the execution of another (tail) event ('responding' to the first event)." },
+    { type: "includes", description: "Focus on events. Extract a relation of type 'includes', if executing one event (head) enables the execution of another (tail) event again, even if it was excluded before." },
+    { type: "excludes", description: "Focus on events. Extract a relation of type 'excludes', if executing one event (head) makes executing another (tail) event impossible, i.e., prevents its execution. Excludes relations can be reflexive, e.g., if one event can only be executed once." },
+];
 
 const defaultEntitiesDescription = `**Entity**: A real-world object that can be referred to by multiple mentions, e.g., a person, company, or event. Mentions contained in the same entity must refer to the same real-world object.`;
 
@@ -124,8 +128,8 @@ const ModelerState = ({
     const [extractionStep, setExtractionStep] = useState<string | null>(null);
     const [extractConfig, setExtractConfig] = useState<ExtractionConfig>({
         modelName: "", apiKey: "", text: "",
-        relationDescription: defaultRelationsDescription,
-        mentionDescription: defaultMentionsDescription,
+        mentionDescriptions: defaultMentionDescriptions,
+        relationDescriptions: defaultRelationDescriptions,
         entityDescription: defaultEntitiesDescription,
         dataDescription: defaultDataDescription
     });

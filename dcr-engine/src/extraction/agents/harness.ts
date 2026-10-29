@@ -1,4 +1,4 @@
-import type { ExtractionConfig, ExtractionResult } from "../models";
+import type { ExtractionConfig, ExtractionResult, MentionTypeDefinition, RelationTypeDefinition } from "../models";
 import { preprocessText } from "../preprocessing";
 import { buildGraph } from "../graph";
 import { MentionsAgent } from "./mentionsAgent";
@@ -16,10 +16,16 @@ export class ExtractionHarness {
     private relationsAgent: RelationsAgent;
     private dataAgent: DataAgent;
 
-    constructor(private config: {
+    private config: {
+        apiKey: string;
+        modelName: string;
+    };
+
+    constructor(config: {
         apiKey: string;
         modelName: string;
     }) {
+        this.config = config;
         this.mentionsAgent = new MentionsAgent(config);
         this.entitiesAgent = new EntitiesAgent(config);
         this.relationsAgent = new RelationsAgent(config);
@@ -39,7 +45,7 @@ export class ExtractionHarness {
             doc,
             apiKey: config.apiKey,
             modelName: config.modelName,
-            description: config.mentionDescription,
+            mentionDescriptions: config.mentionDescriptions,
         });
         doc.mentions = mentionsResult.data;
         
@@ -57,7 +63,7 @@ export class ExtractionHarness {
             doc,
             apiKey: config.apiKey,
             modelName: config.modelName,
-            description: config.relationDescription,
+            relationDescriptions: config.relationDescriptions,
         });
         doc.relations = relationsResult.data;
         
@@ -85,9 +91,9 @@ export class ExtractionHarness {
     async extractFromText(
         text: string,
         descriptions: {
-            mentionDescription: string;
+            mentionDescriptions: MentionTypeDefinition[];
             entityDescription: string;
-            relationDescription: string;
+            relationDescriptions: RelationTypeDefinition[];
             dataDescription?: string;
         },
         onStep?: (step: string) => void,

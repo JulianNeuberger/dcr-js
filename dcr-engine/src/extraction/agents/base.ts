@@ -5,7 +5,7 @@ export interface AgentContext {
     doc: ProcessDescription;
     apiKey: string;
     modelName: string;
-    description?: string;
+    description?: string | any[];
     [key: string]: any;
 }
 
@@ -16,11 +16,18 @@ export interface AgentResult<T = any> {
 
 export abstract class ExtractionAgent<TInput = AgentContext, TOutput = any> {
     abstract name: string;
-    
-    constructor(protected config: {
+
+    protected config: {
         apiKey: string;
         modelName: string;
-    }) {}
+    };
+
+    constructor(config: {
+        apiKey: string;
+        modelName: string;
+    }) {
+        this.config = config;
+    }
 
     abstract getPrompt(input: TInput): string;
 

@@ -1,8 +1,13 @@
-import type { Mention, ProcessDescription } from "./models";
+import type { Mention, MentionTypeDefinition, ProcessDescription } from "./models";
 import mentionPrompt from "../prompts/mentions";
 import { routePrompt } from "./router";
 
-export async function extractEntityMentions(model: string, doc: ProcessDescription, apiKey: string, mentionDescription: string): Promise<Mention[]> {
+export async function extractEntityMentions(
+    model: string,
+    doc: ProcessDescription,
+    apiKey: string,
+    mentionDescriptions: MentionTypeDefinition[]
+): Promise<Mention[]> {
     let text = "";
     let i = 0;
     for (const s of doc.sentences) {
@@ -12,9 +17,14 @@ export async function extractEntityMentions(model: string, doc: ProcessDescripti
 
     const mentions: Mention[] = [];
 
+    const descriptionText = mentionDescriptions
+        .filter((d) => d.type && d.description)
+        .map((d) => `${d.type}: ${d.description}`)
+        .join("\n");
+
     let prompt = mentionPrompt;
     prompt = prompt.replaceAll("{{text}}", text);
-    prompt = prompt.replaceAll("{{description}}", mentionDescription);
+    prompt = prompt.replaceAll("{{description}}", descriptionText);
     const result = await routePrompt(prompt, apiKey, model);
 
     for (const rawMention of result.trim().split("\n")) {

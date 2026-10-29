@@ -36,13 +36,23 @@ export type ProcessDescription = {
     expressions: Expression[];
 }
 
+export type MentionTypeDefinition = {
+    type: string;
+    description: string;
+};
+
+export type RelationTypeDefinition = {
+    type: string;
+    description: string;
+};
+
 export type ExtractionConfig = {
     text: string;
     modelName: string;
     apiKey: string;
-    mentionDescription: string;
+    mentionDescriptions: MentionTypeDefinition[];
     entityDescription: string;
-    relationDescription: string;
+    relationDescriptions: RelationTypeDefinition[];
     dataDescription: string;
 }
 

@@ -1,9 +1,9 @@
-import { ExtractionAgent, type AgentContext, type AgentResult } from "./base";
-import type { Mention } from "../models";
+import { ExtractionAgent, type AgentContext } from "./base";
+import type { Mention, MentionTypeDefinition } from "../models";
 import mentionPrompt from "../../prompts/mentions";
 
 export interface MentionsAgentInput extends AgentContext {
-    description: string;
+    mentionDescriptions: MentionTypeDefinition[];
 }
 
 export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]> {
@@ -16,9 +16,14 @@ export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]
             text += `${i}: ${s.trim()}\n`;
             i++;
         }
+        const descriptionText = input.mentionDescriptions
+            .filter((d) => d.type && d.description)
+            .map((d) => `${d.type}: ${d.description}`)
+            .join("\n");
+
         let prompt = mentionPrompt;
         prompt = prompt.replaceAll("{{text}}", text);
-        prompt = prompt.replaceAll("{{description}}", input.description);
+        prompt = prompt.replaceAll("{{description}}", descriptionText);
         return prompt;
     }
 

@@ -27,11 +27,11 @@ export default async function extractGraph(
 ): Promise<ExtractionResult> {
     const doc = preprocessText(config.text);
     onStep?.("Extracting actors and events");
-    doc.mentions = await extractEntityMentions(config.modelName, doc, config.apiKey, config.mentionDescription);
+    doc.mentions = await extractEntityMentions(config.modelName, doc, config.apiKey, config.mentionDescriptions);
     onStep?.("Resolving entities");
     doc.entities = await resolveEntities(config.modelName, doc, config.apiKey, config.entityDescription);
     onStep?.("Extracting relations");
-    doc.relations = await extractRelations(config.modelName, doc, config.apiKey, config.relationDescription);
+    doc.relations = await extractRelations(config.modelName, doc, config.apiKey, config.relationDescriptions);
     onStep?.("Extracting data guards");
     const {
         variables,
