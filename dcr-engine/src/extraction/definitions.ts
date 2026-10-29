@@ -49,41 +49,46 @@ export const defaultRelationDescriptions: RelationTypeDefinition[] = [
         name: "executes",
         description:
             "Focus on actors. Extract a relation of type 'executes', if the text describes that this actor (head) " +
-            "is responsible for the event (tail).",
+            "is responsible for the event, obligation, permission, or exception (tail).",
         order: 1,
     },
     {
         type: "condition",
         name: "condition",
         description:
-            "Focus on events. Extract a relation of type 'condition', if one event (head) must be executed before " +
-            "another (tail) event can be executed (first event is the 'condition' for the second event).",
-        order: 2,
+            "Focus on events, obligations, permissions, and exceptions. Extract a relation of type 'condition', " +
+            "if one (head) must happen before another (tail, usually condition) can happen (first is the 'condition' " +
+            "for the second).",
+        order: 1,
     },
     {
         type: "response",
         name: "response",
         description:
-            "Focus on events. Extract a relation of type 'response', if executing one event (head) necessitates the " +
-            "execution of another (tail) event ('responding' to the first event).",
-        order: 3,
+            "Focus on events, obligations, permissions, and exceptions. Extract a relation of type 'response', " +
+            "if executing one of them (head) necessitates the execution of another (tail, usually obligation) " +
+            "('responding' to the first).",
+        order: 1,
     },
     {
         type: "includes",
         name: "includes",
         description:
-            "Focus on events. Extract a relation of type 'includes', if executing one event (head) enables the " +
-            "execution of another (tail) event again, even if it was excluded before.",
-        order: 4,
+            "Focus on events, obligations, permissions, and exceptions. Extract a relation of type 'includes', " +
+            "if on of them (head) re-enables the execution of another (tail) again, even if it was excluded " +
+            "before.",
+        order: 1,
     },
     {
         type: "excludes",
         name: "excludes",
         description:
-            "Focus on events. Extract a relation of type 'excludes', if executing one event (head) makes executing " +
-            "another (tail) event impossible, i.e., prevents its execution. Excludes relations can be reflexive, " +
-            "e.g., if one event can only be executed once.",
-        order: 5,
+            "Focus on events, obligations, permissions, and exceptions. Extract a relation of type 'excludes', " +
+            "if executing one (head, often but not always exception) makes executing another (tail) event, obligation, " +
+            "permission, or exception impossible, i.e., prevents its execution. Excludes relations can be reflexive, " +
+            "e.g., if one event, obligation, permission, or exception can only be executed once. Another common case " +
+            "is mutual exclusion (choice between actions).",
+        order: 1,
     },
 ];
 

@@ -67,17 +67,13 @@ export class ExtractionHarness {
         const mentionGroups = groupByOrder(config.mentionDescriptions);
         doc.mentions = [];
         for (const group of mentionGroups) {
-            const results = await Promise.all(group.map((d) =>
-                this.mentionsAgent.run({
-                    doc,
-                    apiKey: config.apiKey,
-                    modelName: config.modelName,
-                    mentionDescriptions: [d],
-                })
-            ));
-            for (const r of results) {
-                doc.mentions.push(...r.data);
-            }
+            const result = await this.mentionsAgent.run({
+                doc,
+                apiKey: config.apiKey,
+                modelName: config.modelName,
+                mentionDescriptions: group,
+            });
+            doc.mentions.push(...result.data);
         }
 
         // --- Entities ---
@@ -95,17 +91,13 @@ export class ExtractionHarness {
         const relationGroups = groupByOrder(config.relationDescriptions);
         doc.relations = [];
         for (const group of relationGroups) {
-            const results = await Promise.all(group.map((d) =>
-                this.relationsAgent.run({
-                    doc,
-                    apiKey: config.apiKey,
-                    modelName: config.modelName,
-                    relationDescriptions: [d],
-                })
-            ));
-            for (const r of results) {
-                doc.relations.push(...r.data);
-            }
+            const result = await this.relationsAgent.run({
+                doc,
+                apiKey: config.apiKey,
+                modelName: config.modelName,
+                relationDescriptions: group,
+            });
+            doc.relations.push(...result.data);
         }
 
         if (includeData) {
