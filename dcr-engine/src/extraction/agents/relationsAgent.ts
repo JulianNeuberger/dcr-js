@@ -1,7 +1,7 @@
 import { ExtractionAgent, type AgentContext } from "./base";
 import type { Relation, RelationTypeDefinition } from "../models";
 import relationsPrompt from "../../prompts/relations";
-import { tagMentions } from "../preprocessing";
+import { buildTaggedText } from "../preprocessing";
 
 export interface RelationsAgentInput extends AgentContext {
     relationDescriptions: RelationTypeDefinition[];
@@ -11,14 +11,14 @@ export class RelationsAgent extends ExtractionAgent<RelationsAgentInput, Relatio
     name = "relations";
 
     getPrompt(input: RelationsAgentInput): string {
-        const taggedSentences = tagMentions(input.doc.sentences, input.doc.mentions);
+        const text = buildTaggedText(input.doc.sentences, input.doc.mentions);
         const descriptionText = input.relationDescriptions
             .filter((d) => d.type && d.name && d.description)
             .map((d) => `${d.name}: ${d.description}`)
             .join("\n");
 
         let prompt = relationsPrompt;
-        prompt = prompt.replaceAll("{{text}}", taggedSentences.join('\n'));
+        prompt = prompt.replaceAll("{{text}}", text);
         prompt = prompt.replaceAll("{{description}}", descriptionText);
         return prompt;
     }

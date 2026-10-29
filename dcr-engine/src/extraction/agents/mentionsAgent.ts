@@ -1,6 +1,7 @@
 import { ExtractionAgent, type AgentContext } from "./base";
 import type { Mention, MentionTypeDefinition } from "../models";
 import mentionPrompt from "../../prompts/mentions";
+import { buildTaggedNumberedText } from "../preprocessing";
 
 export interface MentionsAgentInput extends AgentContext {
     mentionDescriptions: MentionTypeDefinition[];
@@ -10,12 +11,7 @@ export class MentionsAgent extends ExtractionAgent<MentionsAgentInput, Mention[]
     name = "mentions";
 
     getPrompt(input: MentionsAgentInput): string {
-        let text = "";
-        let i = 0;
-        for (const s of input.doc.sentences) {
-            text += `${i}: ${s.trim()}\n`;
-            i++;
-        }
+        const text = buildTaggedNumberedText(input.doc.sentences, input.doc.mentions);
         const descriptionText = input.mentionDescriptions
             .filter((d) => d.type && d.name && d.description)
             .map((d) => `${d.name}: ${d.description}`)

@@ -1,6 +1,6 @@
 import type { ProcessDescription, Relation, RelationTypeDefinition } from "./models";
 import relationsPrompt from "../prompts/relations";
-import { tagMentions } from "./preprocessing";
+import { buildTaggedText } from "./preprocessing";
 import { routePrompt } from "./router";
 
 export async function extractRelations(
@@ -9,14 +9,14 @@ export async function extractRelations(
     apiKey: string,
     relationDescriptions: RelationTypeDefinition[]
 ): Promise<Relation[]> {
-    const taggedSentences = tagMentions(doc.sentences, doc.mentions);
+    const text = buildTaggedText(doc.sentences, doc.mentions);
     const descriptionText = relationDescriptions
         .filter((d) => d.type && d.name && d.description)
         .map((d) => `${d.name}: ${d.description}`)
         .join("\n");
 
     let prompt = relationsPrompt;
-    prompt = prompt.replaceAll("{{text}}", taggedSentences.join('\n'));
+    prompt = prompt.replaceAll("{{text}}", text);
     prompt = prompt.replaceAll("{{description}}", descriptionText);
 
     const result = await routePrompt(prompt, apiKey, model);
