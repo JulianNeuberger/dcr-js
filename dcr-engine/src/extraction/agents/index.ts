@@ -8,5 +8,5 @@ export { RelationsAgent } from "./relationsAgent";
 export type { RelationsAgentInput } from "./relationsAgent";
 export { DataAgent } from "./dataAgent";
 export type { DataAgentInput, DataAgentOutput } from "./dataAgent";
-export { ExtractionHarness, default as createExtractionHarness } from "./harness";
+export { extractGraph } from "./harness";
 export type { ExtractionHarnessOptions } from "./harness";

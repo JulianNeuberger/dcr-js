@@ -21,35 +21,35 @@ export { GeminiProvider } from "./geminiProvider";
 export { LLMProvider } from "./llmProvider";
 export * from "./agents";
 
-export default async function extractGraph(
-    config: ExtractionConfig,
-    onStep?: (step: string) => void
-): Promise<ExtractionResult> {
-    const doc = preprocessText(config.text);
-    onStep?.("Extracting actors and events");
-    doc.mentions = await extractEntityMentions(config.modelName, doc, config.apiKey, config.mentionDescriptions);
-    onStep?.("Resolving entities");
-    doc.entities = await resolveEntities(config.modelName, doc, config.apiKey, config.entityDescription);
-    onStep?.("Extracting relations");
-    doc.relations = await extractRelations(config.modelName, doc, config.apiKey, config.relationDescriptions);
-
-    if (config.includeData !== false) {
-        onStep?.("Extracting data guards");
-        const {
-            variables,
-            expressions
-        } = await extractDataAndExpressions(config.modelName, doc, config.apiKey, config.dataDescription);
-        doc.variables = variables;
-        doc.expressions = expressions;
-    } else {
-        doc.variables = [];
-        doc.expressions = [];
-    }
-
-    onStep?.("Building DCR graph");
-    const graph = buildGraph(doc);
-
-    return {graph, doc};
-}
-
-export { extractGraph };
+// export default async function extractGraph(
+//     config: ExtractionConfig,
+//     onStep?: (step: string) => void
+// ): Promise<ExtractionResult> {
+//     const doc = preprocessText(config.text);
+//     onStep?.("Extracting actors and events");
+//     doc.mentions = await extractEntityMentions(config.modelName, doc, config.apiKey, config.mentionDescriptions);
+//     onStep?.("Resolving entities");
+//     doc.entities = await resolveEntities(config.modelName, doc, config.apiKey, config.entityDescription);
+//     onStep?.("Extracting relations");
+//     doc.relations = await extractRelations(config.modelName, doc, config.apiKey, config.relationDescriptions);
+//
+//     if (config.includeData !== false) {
+//         onStep?.("Extracting data guards");
+//         const {
+//             variables,
+//             expressions
+//         } = await extractDataAndExpressions(config.modelName, doc, config.apiKey, config.dataDescription);
+//         doc.variables = variables;
+//         doc.expressions = expressions;
+//     } else {
+//         doc.variables = [];
+//         doc.expressions = [];
+//     }
+//
+//     onStep?.("Building DCR graph");
+//     const graph = buildGraph(doc);
+//
+//     return {graph, doc};
+// }
+//
+// export { extractGraph };

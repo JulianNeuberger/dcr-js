@@ -1,10 +1,10 @@
-import type { ExtractionConfig, ExtractionResult, MentionTypeDefinition, RelationTypeDefinition } from "../models";
-import { preprocessText } from "../preprocessing";
-import { buildGraph } from "../graph";
-import { MentionsAgent } from "./mentionsAgent";
-import { EntitiesAgent } from "./entitiesAgent";
-import { RelationsAgent } from "./relationsAgent";
-import { DataAgent } from "./dataAgent";
+import type {ExtractionConfig, ExtractionResult} from "../models";
+import {preprocessText} from "../preprocessing";
+import {buildGraph} from "../graph";
+import {MentionsAgent} from "./mentionsAgent";
+import {EntitiesAgent} from "./entitiesAgent";
+import {RelationsAgent} from "./relationsAgent";
+import {DataAgent} from "./dataAgent";
 
 export interface ExtractionHarnessOptions {
     includeData?: boolean;
@@ -44,118 +44,76 @@ function formatExtractionStep(names: string[]): string {
     return `Extracting ${pluralized.slice(0, -1).join(", ")} and ${pluralized[pluralized.length - 1]}`;
 }
 
-export class ExtractionHarness {
-    private mentionsAgent: MentionsAgent;
-    private entitiesAgent: EntitiesAgent;
-    private relationsAgent: RelationsAgent;
-    private dataAgent: DataAgent;
+export async function extractGraph(
+    config: ExtractionConfig,
+    onStep?: (step: string) => void,
+    options: ExtractionHarnessOptions = {}
+): Promise<ExtractionResult> {
+    const includeData = options.includeData ?? config.includeData ?? true;
+    const doc = preprocessText(config.text);
 
-    private config: {
-        apiKey: string;
-        modelName: string;
-    };
+    const mentionsAgent = new MentionsAgent(config);
+    const entitiesAgent = new EntitiesAgent(config);
+    const relationsAgent = new RelationsAgent(config);
+    const dataAgent = new DataAgent(config);
 
-    constructor(config: {
-        apiKey: string;
-        modelName: string;
-    }) {
-        this.config = config;
-        this.mentionsAgent = new MentionsAgent(config);
-        this.entitiesAgent = new EntitiesAgent(config);
-        this.relationsAgent = new RelationsAgent(config);
-        this.dataAgent = new DataAgent(config);
-    }
-
-    async extractGraph(
-        config: ExtractionConfig,
-        onStep?: (step: string) => void,
-        options: ExtractionHarnessOptions = {}
-    ): Promise<ExtractionResult> {
-        const includeData = options.includeData ?? config.includeData ?? true;
-        const doc = preprocessText(config.text);
-
-        // --- Mentions: run by order groups ---
-        const mentionGroups = groupByOrder(config.mentionDescriptions);
-        doc.mentions = [];
-        for (const group of mentionGroups) {
-            console.log(`Running ${group.map(g => g.name)}`);
-            onStep?.(formatExtractionStep(group.map((d) => d.name)));
-            const result = await this.mentionsAgent.run({
-                doc,
-                apiKey: config.apiKey,
-                modelName: config.modelName,
-                mentionDescriptions: group,
-            });
-            doc.mentions.push(...result.data);
-        }
-
-        // --- Entities ---
-        onStep?.("Resolving entities");
-        const entitiesResult = await this.entitiesAgent.run({
+    // --- Mentions: run by order groups ---
+    const mentionGroups = groupByOrder(config.mentionDescriptions);
+    doc.mentions = [];
+    for (const group of mentionGroups) {
+        console.log(`Running ${group.map(g => g.name)}`);
+        onStep?.(formatExtractionStep(group.map((d) => d.name)));
+        const result = await mentionsAgent.run({
             doc,
             apiKey: config.apiKey,
             modelName: config.modelName,
-            description: config.entityDescription,
+            mentionDescriptions: group,
         });
-        doc.entities = entitiesResult.data;
-
-        // --- Relations: run by order groups ---
-        const relationGroups = groupByOrder(config.relationDescriptions);
-        doc.relations = [];
-        for (const group of relationGroups) {
-            console.log(`Running ${group.map(g => g.name)}`);
-            onStep?.(formatExtractionStep(group.map((d) => d.name)));
-            const result = await this.relationsAgent.run({
-                doc,
-                apiKey: config.apiKey,
-                modelName: config.modelName,
-                relationDescriptions: group,
-            });
-            doc.relations.push(...result.data);
-        }
-
-        if (includeData) {
-            onStep?.("Extracting data guards");
-            const dataResult = await this.dataAgent.run({
-                doc,
-                apiKey: config.apiKey,
-                modelName: config.modelName,
-                description: config.dataDescription,
-            });
-            doc.variables = dataResult.data.variables;
-            doc.expressions = dataResult.data.expressions;
-        } else {
-            doc.variables = [];
-            doc.expressions = [];
-        }
-
-        onStep?.("Building DCR graph");
-        const graph = buildGraph(doc);
-
-        return {graph, doc};
+        doc.mentions.push(...result.data);
     }
 
-    async extractFromText(
-        text: string,
-        descriptions: {
-            mentionDescriptions: MentionTypeDefinition[];
-            entityDescription: string;
-            relationDescriptions: RelationTypeDefinition[];
-            dataDescription?: string;
-        },
-        onStep?: (step: string) => void,
-        options: ExtractionHarnessOptions = {}
-    ): Promise<ExtractionResult> {
-        return this.extractGraph({
-            text,
-            modelName: this.config.modelName,
-            apiKey: this.config.apiKey,
-            dataDescription: descriptions.dataDescription || "",
-            ...descriptions,
-        } as ExtractionConfig, onStep, options);
-    }
-}
+    // --- Entities ---
+    onStep?.("Resolving entities");
+    const entitiesResult = await entitiesAgent.run({
+        doc,
+        apiKey: config.apiKey,
+        modelName: config.modelName,
+        description: config.entityDescription,
+    });
+    doc.entities = entitiesResult.data;
 
-export default function createExtractionHarness(apiKey: string, modelName: string): ExtractionHarness {
-    return new ExtractionHarness({ apiKey, modelName });
+    // --- Relations: run by order groups ---
+    const relationGroups = groupByOrder(config.relationDescriptions);
+    doc.relations = [];
+    for (const group of relationGroups) {
+        console.log(`Running ${group.map(g => g.name)}`);
+        onStep?.(formatExtractionStep(group.map((d) => d.name)));
+        const result = await relationsAgent.run({
+            doc,
+            apiKey: config.apiKey,
+            modelName: config.modelName,
+            relationDescriptions: group,
+        });
+        doc.relations.push(...result.data);
+    }
+
+    if (includeData) {
+        onStep?.("Extracting data guards");
+        const dataResult = await dataAgent.run({
+            doc,
+            apiKey: config.apiKey,
+            modelName: config.modelName,
+            description: config.dataDescription,
+        });
+        doc.variables = dataResult.data.variables;
+        doc.expressions = dataResult.data.expressions;
+    } else {
+        doc.variables = [];
+        doc.expressions = [];
+    }
+
+    onStep?.("Building DCR graph");
+    const graph = buildGraph(doc);
+
+    return {graph, doc};
 }
