@@ -14,7 +14,8 @@ export const defaultMentionDescriptions: MentionTypeDefinition[] = [
         name: "Obligation",
         description:
             "An obligation that is the result of some event that happened " +
-            "previously.",
+            "previously. Often signalled by modal verbs such as 'must', " +
+            "'shall', ...",
         order: 1,
     },
     {
@@ -22,7 +23,8 @@ export const defaultMentionDescriptions: MentionTypeDefinition[] = [
         name: "Permission",
         description:
             "A permission that is the result of some event that happened " +
-            "previously.",
+            "previously. Often signalled by modal verbs, such as 'can', " +
+            "'may', ...",
         order: 1,
     },
     {
@@ -30,7 +32,8 @@ export const defaultMentionDescriptions: MentionTypeDefinition[] = [
         name: "Exception",
         description:
             "Definition of conditions that constitute an exception " +
-            "to the applicability of other obligations or permissions.",
+            "to the applicability of other obligations or permissions. " +
+            "Often signalled by 'unless', 'except', ...",
         order: 1,
     },
     {
@@ -38,7 +41,7 @@ export const defaultMentionDescriptions: MentionTypeDefinition[] = [
         name: "Actor",
         description:
             "Nouns and pronouns, that describe a person, system, or company " +
-            "that plays an active role in the scenario of the regulation, law.",
+            "that plays an active role in the scenario of the regulation, law. ",
         order: 2,
     },
 ];
