@@ -99,6 +99,12 @@ export const defaultEntityDescription: string =
     "**Entity**: A real-world object that can be referred to by multiple mentions, e.g., a person, company, or event. " +
     "Mentions contained in the same entity must refer to the same real-world object.";
 
+export const defaultRelabelDescription: string =
+    "**Activity name**: A short verb–object name in imperative form, e.g., \"Apply Method\" or \"Develop Tool\". " +
+    "Use 2–4 words. Keep only the core action and what it acts on: drop manner, conditions, reasons, " +
+    "qualifiers and adverbs. Do not include actors or roles in the name. " +
+    "Every activity must get a different name.";
+
 export const defaultDataDescription: string =
     "**Variable**: Data that is relevant to the process, e.g., by changing rules or outcomes. Examples are the age of " +
     "process participants, distances, weights, number of units, etc. Time does not need to be extracted separately and " +
@@ -108,4 +114,4 @@ export const defaultDataDescription: string =
     "called Deadlines (for responses) and Timeouts (for conditions). Expressions always shall be extracted in the FEEL " +
     "notation, deadlines and timeouts use the time period format, e.g., PT2h for a period of 2 hours.";
 
-export const initGraphName: string = "DCR-JS Graph";
+export const initGraphName: string = "Process DoCtoR Graph";

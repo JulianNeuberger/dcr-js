@@ -1,7 +1,7 @@
 import DCRModeler from "modeler";
 
 import emptyBoardXML from "../resources/emptyBoard";
-import {useEffect, useEffectEvent, useState} from "react";
+import {useEffect, useEffectEvent, useRef, useState} from "react";
 
 import {saveAs} from "file-saver";
 import {StateEnum, type StateProps} from "../App";
@@ -26,13 +26,16 @@ import {useHotkeys} from "react-hotkeys-hook";
 import FullScreenIcon from "../utilComponents/FullScreenIcon";
 import StyledFileUpload from "../utilComponents/StyledFileUpload";
 import Loading from "../utilComponents/Loading";
-import {type DCRGraph, extractGraph, layoutGraph, moddleToDCR, nestDCR, buildGraph, filterProcessDescription, type Nestings, type RoleMap, type ProcessDescription,} from "dcr-engine";
+import {type DCRGraph, extractGraph, layoutGraph, moddleToDCR, nestDCR, buildGraph, filterProcessDescription, diffGraphs, type Nestings, type ProcessDescription, type RoleDataDCR,} from "dcr-engine";
+import {applyGraphEdits, eventIdsFromCanvas, type EventIdMap} from "../utilComponents/applyGraphEdits";
+import {activityIdsFor, elementsForHover, entriesForElement, hoveredPart, setHighlight, type ActivityIdMap, type ExtractionHoverTarget, type Highlight, type ViewHighlight} from "../utilComponents/extractionHighlight";
 import GraphNameInput from "../utilComponents/GraphNameInput";
 import styled from "styled-components";
 import {ColoredRelationsSetting, MarkerNotationSetting,} from "./GlobalModalMenuElements";
 import ReactiveModeler from "./ReactiveModeler";
 import TestDrivenModeling from "./TestDrivenModeling";
 import {useBPMN} from '../utilComponents/useBPMN';
+import {useSMVExport} from '../utilComponents/useSMVExport';
 import {BsFiletypeDoc, BsStars} from "react-icons/bs";
 import ModelExtractionDialogue from "./ModelExtractionDialogue.tsx";
 import type {ExtractionConfig, ExtractionResult} from "dcr-engine/src/extraction";
@@ -41,6 +44,7 @@ import {
     defaultRelationDescriptions,
     defaultEntityDescription,
     defaultDataDescription,
+    defaultRelabelDescription,
     initGraphName,
 } from "dcr-engine/src/extraction/definitions";
 import ExtractionResultView from "./ExtractionResultView.tsx";
@@ -120,9 +124,18 @@ const ModelerState = ({
         relationDescriptions: defaultRelationDescriptions,
         entityDescription: defaultEntityDescription,
         dataDescription: defaultDataDescription,
-        includeData: false
+        includeData: false,
+        relabelDescription: defaultRelabelDescription,
+        relabel: true,
     });
     const [extractionResult, setExtractionResult] = useState<ExtractionResult | undefined>();
+    const [extractionRun, setExtractionRun] = useState(0);
+    // The graph the canvas was last built from by extraction (Rebuild applies only the difference to it),
+    // and which canvas event each of its events is (so renamed events are still found).
+    // activityIds: which canvas event each activity (entity id) became, used to find it on hover.
+    const [built, setBuilt] = useState<{graph: RoleDataDCR; eventIds: EventIdMap; activityIds: ActivityIdMap} | undefined>();
+    // Canvas elements currently highlighted because their text is hovered in the extraction view.
+    const hoverHighlight = useRef<Highlight[]>([]);
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [textOpen, setTextOpen] = useState(false);
@@ -202,6 +215,7 @@ const ModelerState = ({
                 .then(() => {
                     setGraphName(importName ? importName : initGraphName);
                     setExtractionResult(undefined);
+                    setBuilt(undefined);
                     setTextOpen(false);
                     warnIfInvalidGuards();
                 })
@@ -246,6 +260,26 @@ const ModelerState = ({
         const blob = new Blob([data.svg]);
 
         saveAs(blob, `${graphName}.svg`);
+    }
+
+    async function saveAsSMV() {
+        if (!modeler) {
+            return;
+        }
+
+        if (warnIfInvalidGuards()) return;
+
+        try {
+            setLoading(true);
+            const data = await modeler.saveXML({format: true});
+            const smv = await exportSMV(data.xml);
+            const blob = new Blob([smv]);
+            saveAs(blob, `${graphName}.smv`);
+        } catch (e) {
+            toast.error(`SMV export failed: ${e instanceof Error ? e.message : "Unknown error"}`);
+        } finally {
+            setLoading(false);
+        }
     }
 
     function savedGraphElements(): Array<ModalMenuElement> {
@@ -379,6 +413,14 @@ const ModelerState = ({
                     text: "Download SVG",
                     onClick: () => {
                         saveAsSvg();
+                        setMenuOpen(false);
+                    },
+                },
+                {
+                    icon: <div/>,
+                    text: "Download SMV",
+                    onClick: () => {
+                        saveAsSMV();
                         setMenuOpen(false);
                     },
                 },
@@ -523,6 +565,7 @@ const ModelerState = ({
     };
 
     const {convertBpmnToDcr, loading: bpmnLoading} = useBPMN(modeler, setGraphName, setLoading, autoLayout);
+    const {exportSMV} = useSMVExport();
 
     const onInitModeler = useEffectEvent((modeler: DCRModeler) => {
         modeler
@@ -558,15 +601,11 @@ const ModelerState = ({
                     try {
                         const res = await extractGraph(config, setExtractionStep);
                         setExtractionResult(res)
-                        const roleMap: RoleMap = {};
-                        for (const r of res.doc.relations) {
-                            if (r.type.toLowerCase() !== "executes") continue;
-                            const actor = res.doc.mentions[r.headMentionIndex];
-                            const event = res.doc.mentions[r.tailMentionIndex];
-                            roleMap[event.text] = actor.text;
-                        }
-                        const xml = await layoutGraph(res.graph, undefined, roleMap);
+                        setExtractionRun((n) => n + 1);
+                        const xml = await layoutGraph(res.graph);
                         await modeler.importXML(xml);
+                        const eventIds = eventIdsFromCanvas(modeler.get("dcrGraphEditing"));
+                        setBuilt({graph: res.graph, eventIds, activityIds: activityIdsFor(res.doc, eventIds)});
                         setGraphName("Extracted Model");    
                     } catch (e) {
                         console.error(e);
@@ -608,13 +647,92 @@ const ModelerState = ({
         );
         try {
             const graph = buildGraph(filteredDoc);
-            const xml = await layoutGraph(graph);
-            await modeler.importXML(xml);
+            const api = modeler.get("dcrGraphEditing");
+            if (!built || api.listEvents().length === 0) {
+                // Nothing to update in place: draw from scratch.
+                const xml = await layoutGraph(graph);
+                await modeler.importXML(xml);
+                const eventIds = eventIdsFromCanvas(api);
+                setBuilt({graph, eventIds, activityIds: activityIdsFor(filteredDoc, eventIds)});
+            } else {
+                // Apply only what changed since the last build, keeping layout and manual edits.
+                const {applied, skipped, eventIds} = applyGraphEdits(api, diffGraphs(built.graph, graph), built.eventIds);
+                setBuilt({graph, eventIds, activityIds: activityIdsFor(filteredDoc, eventIds)});
+                if (skipped.length > 0) {
+                    console.warn("Rebuild: skipped edits", skipped);
+                    toast.warning(`Model updated (${applied} changes); ${skipped.length} skipped, see console.`);
+                }
+            }
         } catch (e) {
             console.log(e);
             alert(`Unable to rebuild model: ${e instanceof Error ? e.message : e}`);
         }
     };
+
+    // Highlight the canvas element(s) of the hovered mention or relation (null: clear).
+    const handleExtractionHover = (target: ExtractionHoverTarget | null) => {
+        if (!modeler) return;
+        let next: Highlight[] = [];
+        if (target && extractionResult && built) {
+            try {
+                next = elementsForHover(target, extractionResult.doc, modeler.get("dcrGraphEditing"), built.eventIds, built.activityIds);
+            } catch (e) {
+                console.warn("Extraction hover:", e);
+            }
+        }
+        hoverHighlight.current = setHighlight(modeler, hoverHighlight.current, next);
+    };
+
+    // Don't leave a highlight behind when the extraction panel closes.
+    useEffect(() => {
+        if (!textOpen && modeler) {
+            hoverHighlight.current = setHighlight(modeler, hoverHighlight.current, []);
+        }
+    }, [textOpen, modeler]);
+
+    // The other direction: hovering on the canvas highlights entries in the extraction view.
+    const [viewHighlight, setViewHighlight] = useState<ViewHighlight | null>(null);
+    useEffect(() => {
+        setViewHighlight(null);
+        if (!modeler || !textOpen || !extractionResult || !built) return;
+        const eventBus = modeler.get("eventBus");
+        let currentKey = "";
+        const update = (part: Highlight | undefined) => {
+            const key = part ? `${part.id}:${part.part}` : "";
+            if (key === currentKey) return;
+            currentKey = key;
+            if (!part) return setViewHighlight(null);
+            try {
+                setViewHighlight(entriesForElement(part, extractionResult.doc, modeler.get("dcrGraphEditing"), built.eventIds, built.activityIds));
+            } catch (e) {
+                console.warn("Canvas hover:", e);
+                setViewHighlight(null);
+            }
+        };
+        // diagram-js tells which element the mouse entered/left; the role/label
+        // part is re-checked on every native mouse move over the canvas.
+        let hovered: any = null;
+        const onHover = (e: any) => {
+            hovered = e.element;
+            update(hoveredPart(modeler, hovered, e.originalEvent));
+        };
+        const onOut = () => {
+            hovered = null;
+            update(undefined);
+        };
+        const onMouseMove = (e: MouseEvent) => {
+            if (hovered) update(hoveredPart(modeler, hovered, e));
+        };
+        const container: HTMLElement = modeler.get("canvas").getContainer();
+        eventBus.on("element.hover", onHover);
+        eventBus.on("element.out", onOut);
+        container.addEventListener("mousemove", onMouseMove);
+        return () => {
+            eventBus.off("element.hover", onHover);
+            eventBus.off("element.out", onOut);
+            container.removeEventListener("mousemove", onMouseMove);
+        };
+    }, [modeler, textOpen, extractionResult, built]);
 
     const renderExtractionResult = () => {
         if(!extractionResult) return null;
@@ -628,8 +746,11 @@ const ModelerState = ({
         }}>
             <h4>Extraction Result</h4>
             <ExtractionResultView
+                key={extractionRun}
                 processDescription={extractionResult.doc}
                 onRebuild={rebuildModel}
+                onHover={handleExtractionHover}
+                highlighted={viewHighlight}
                 onProcessDescriptionChange={handleProcessDescriptionChange}
             />
         </div>;

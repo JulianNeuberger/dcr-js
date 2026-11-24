@@ -40,6 +40,7 @@ import {
 import { parseRoleLog, parseNonRoleLog, writeEventLog, parseBinaryLog } from "./src/eventLogs";
 import { replayTraceS, mergeViolations, quantifyViolations } from "./src/conformance";
 import layoutGraph from "./src/layout";
+import { diffGraphs, relationsOf, type GraphEdit, type GraphRelation } from "./src/graphEdits";
 import { nestDCR } from "./src/nesting";
 import { generateEventLog } from "./src/generation";
 import runTest from "./src/tdm";
@@ -56,6 +57,8 @@ import { SAXParser } from "./src/parsers/SAXParser";
 import {
   extractGraph,
   buildGraph,
+  entityName,
+  mentionName,
   filterProcessDescription,
   type ExtractionResult,
   type ProcessDescription,
@@ -90,6 +93,10 @@ export {
   type Entity,
   type Relation,
   type ExtractionConfig,
+  type GraphEdit,
+  type GraphRelation,
+  diffGraphs,
+  relationsOf,
   isSubProcess,
   execute,
   isAccepting,
@@ -105,6 +112,8 @@ export {
   isEnabledS,
   extractGraph,
   buildGraph,
+  entityName,
+  mentionName,
   filterProcessDescription,
   replayTraceS,
   writeEventLog,
